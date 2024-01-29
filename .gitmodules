@@ -1,0 +1,6 @@
+[submodule "3rdparty/libbsd"]
+	path = 3rdparty/libbsd
+	url = https://gitlab.freedesktop.org/libbsd/libbsd.git
+[submodule "3rdparty/libmd"]
+	path = 3rdparty/libmd
+	url = https://gitlab.freedesktop.org/libbsd/libmd

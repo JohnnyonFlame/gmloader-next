@@ -1,0 +1,74 @@
+ARCH?=aarch64-linux-gnu
+CC=${ARCH}-gcc
+CXX=${ARCH}-g++
+LD=${ARCH}-ld
+PKG_CONFIG=${ARCH}-pkg-config
+
+LIBS=\
+	-pthread \
+	-lm \
+	$(shell ${PKG_CONFIG} sdl2 --libs) \
+	$(shell ${PKG_CONFIG} openal --libs) \
+	$(shell ${PKG_CONFIG} zlib --libs) \
+	$(shell ${PKG_CONFIG} libzip --libs)
+
+OPTM?=-Os -flto
+COMMONFLAGS=-Wno-strict-aliasing -Werror=return-type -I. -I./thunks/ -I./loader/ -I./gmloader/ -I./build/${ARCH}/thunks/libc -I./jni/ ${OPTM} -MMD
+CFLAGS=$(shell ${PKG_CONFIG} sdl2 --cflags) ${COMMONFLAGS}
+CXXFLAGS=-std=gnu++2a -fuse-cxa-atexit -fno-exceptions -fno-rtti $(shell ${PKG_CONFIG} sdl2 --cflags) ${COMMONFLAGS}
+LDFLAGS=-L3rdparty/libbsd/src/.libs ${OPTM}
+
+# Used by generate_libc.py to generate the function tables that are exported to the
+# application.
+LIBC_SRCS=$(filter-out $(if ${exclude_file1},,thunks/libc/libc_table.cpp),$(wildcard thunks/libc/*.cpp))
+LIBC_TABS=build/${ARCH}/thunks/libc/impl_header.h build/${ARCH}/thunks/libc/impl_tab.h
+
+# Files that are compiled into your loader
+LOADER_OBJS=$(patsubst %.cpp,build/%.cpp.o,$(wildcard loader/*.cpp))
+THUNK_OBJS=$(patsubst %.cpp,build/%.cpp.o,$(wildcard thunks/*/*.cpp))
+JNI_OBJS:=$(patsubst %.cpp,build/%.cpp.o,$(wildcard jni/classes/*.cpp))
+JNI_OBJS+=$(patsubst %.cpp,build/%.cpp.o,$(wildcard jni/*.cpp))
+GMLOADER_OBJS:=$(patsubst %.cpp,build/%.cpp.o,$(wildcard gmloader/*.cpp))
+GMLOADER_OBJS+=$(patsubst %.cpp,build/%.cpp.o,$(wildcard gmloader/classes/*.cpp))
+
+GENERIC_OBJ:=\
+	${LOADER_OBJS} \
+	${THUNK_OBJS} \
+	${JNI_OBJS} \
+	${GMLOADER_OBJS}
+
+OBJ=$(patsubst build/%,build/${ARCH}/%,${GENERIC_OBJ})
+
+all: build/${ARCH}/gmloader/gmloader
+
+cross-all:
+	$(MAKE) -f Makefile.gmloader ARCH=aarch64-linux-gnu 
+	$(MAKE) -f Makefile.gmloader ARCH=arm-linux-gnueabihf
+
+clean:
+	rm -rf build/${ARCH}
+
+clean-all:
+	rm -rf build/
+
+-include 3rdparty/libbsd.mk
+
+# By repeating the generated headers on this rule, we force them to start building
+# as soon as possible, so libc_table.cpp isn't waiting forever.
+build/${ARCH}/gmloader/gmloader: ${LIBC_TABS} $(BSD_OBJ) $(OBJ)
+	$(CXX) $(LDFLAGS) -o $@ $(OBJ) $(BSD_OBJ) $(LIBS)
+
+build/${ARCH}/%.cpp.o: %.cpp
+	@mkdir -p $(@D)
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+# The libc_table.cpp symbol table depends on the generated headers
+%/libc_table.cpp: ${LIBC_TABS};
+
+# The generated headers depend on the libc sources
+${LIBC_TABS} &: ${LIBC_SRCS} thunks/libc/symtab thunks/libc/symtab_exclude thunks/libc/c_prototypes.h thunks/libc/common.hpp
+	@mkdir -p $(@D)
+	python3 scripts/generate_libc.py ${ARCH}
+
+# Include all build dependencies too
+-include $(OBJ:%.o=%.d)
