@@ -69,19 +69,19 @@ const FieldId RunnerJNILibClassFields[] = {
     Managed Class Methods
 */
 
-static jfloatArray GamepadAxesValues(void *ins, jint deviceIndex, jstring test)
+static jfloatArray GamepadAxesValues(JNIEnv *env, jclass clz, void *ins, jint deviceIndex, jstring test)
 {
     return 0;
 }
 
 extern int RunnerJNILib_MoveTaskToBackCalled;
-static void MoveTaskToBack()
+static void MoveTaskToBack(JNIEnv *env, jclass clz)
 {
     RunnerJNILib_MoveTaskToBackCalled = 1;
     warning("MoveTaskToBack called.\n");
 }
 
-static int RunnerJNILib_OsGetInfo()
+static int OsGetInfo(JNIEnv *env, jclass clz)
 {
     JNIEnv *env = JNIEXT_GetCurrentEnv();
     String osinfo_arr[] = {
@@ -106,8 +106,8 @@ static int RunnerJNILib_OsGetInfo()
 }
 
 const ManagedMethod RunnerJNILibClassManagedMethods[] = {
-    ManagedMethod::Register<GamepadAxesValues>(RunnerJNILibClass::clazz, "GamepadAxesValues", "(I)[F"),
-    ManagedMethod::Register<MoveTaskToBack>(RunnerJNILibClass::clazz, "MoveTaskToBack", "()V"),
+    ManagedMethod::RegisterStatic<GamepadAxesValues>(RunnerJNILibClass::clazz, "GamepadAxesValues", "(I)[F"),
+    ManagedMethod::RegisterStatic<MoveTaskToBack>(RunnerJNILibClass::clazz, "MoveTaskToBack", "()V"),
     NULL
 };
 

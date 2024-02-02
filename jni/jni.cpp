@@ -475,12 +475,12 @@ ABI_ATTR ABI_ATTR static T iface_CallMethod(JNIEnv *env, jobject obj, jmethodID 
 
     va_list va;
     va_start(va, meth);
-    T (*dispatch)(jobject, va_list) = (decltype(dispatch))method->addr_variadic;
+    T (*dispatch)(JNIEnv *, jobject, va_list) = (decltype(dispatch))method->addr_variadic;
     if constexpr (std::is_same_v<T, void>) {
-        dispatch(obj, va);
+        dispatch(env, obj, va);
         va_end(va);
     } else {
-        T ret = dispatch(obj, va);
+        T ret = dispatch(env, obj, va);
         va_end(va);
         return ret;
     }
@@ -497,11 +497,11 @@ ABI_ATTR static T iface_CallMethodV(JNIEnv *env, jobject obj, jmethodID meth, va
             return (T)0;
     }
 
-    T (*dispatch)(jobject, va_list) = (decltype(dispatch))method->addr_variadic;
+    T (*dispatch)(JNIEnv *, jobject, va_list) = (decltype(dispatch))method->addr_variadic;
     if constexpr (std::is_same_v<T, void>) {
-        dispatch(obj, va);
+        dispatch(env, obj, va);
     } else {
-        T ret = dispatch(obj, va);
+        T ret = dispatch(env, obj, va);
         return ret;
     }
 }
@@ -517,11 +517,11 @@ ABI_ATTR static T iface_CallMethodA(JNIEnv *env, jobject obj, jmethodID meth, co
             return (T)0;
     }
 
-    T (*dispatch)(jobject, const jvalue *) = (decltype(dispatch))method->addr_array;
+    T (*dispatch)(JNIEnv *, jobject, const jvalue *) = (decltype(dispatch))method->addr_array;
     if constexpr (std::is_same_v<T, void>) {
-        dispatch(obj, val);
+        dispatch(env, obj, val);
     } else {
-        return dispatch(obj, val);
+        return dispatch(env, obj, val);
     }
 }
 
@@ -538,12 +538,12 @@ ABI_ATTR static T iface_CallStaticMethod(JNIEnv *env, jclass jclz, jmethodID met
 
     va_list va;
     va_start(va, meth);
-    T (*dispatch)(va_list) = (decltype(dispatch))method->addr_variadic;
+    T (*dispatch)(JNIEnv *, jclass, va_list) = (decltype(dispatch))method->addr_variadic;
     if constexpr (std::is_same_v<T, void>) {
-        dispatch(va);
+        dispatch(env, jclz, va);
         va_end(va);
     } else {
-        T ret = dispatch(va);
+        T ret = dispatch(env, jclz, va);
         va_end(va);
         return ret;
     }
@@ -560,11 +560,11 @@ ABI_ATTR static T iface_CallStaticMethodV(JNIEnv *env, jclass jclz, jmethodID me
             return (T)0;
     }
 
-    T (*dispatch)(va_list) = (decltype(dispatch))method->addr_variadic;
+    T (*dispatch)(JNIEnv *, jclass, va_list) = (decltype(dispatch))method->addr_variadic;
     if constexpr (std::is_same_v<T, void>) {
-        dispatch(va);
+        dispatch(env, jclz, va);
     } else {
-        T ret = dispatch(va);
+        T ret = dispatch(env, jclz, va);
         return ret;
     }
 }
@@ -580,11 +580,11 @@ ABI_ATTR static T iface_CallStaticMethodA(JNIEnv *env, jclass clz, jmethodID met
             return (T)0;
     }
 
-    T (*dispatch)(const jvalue *) = (decltype(dispatch))method->addr_array;
+    T (*dispatch)(JNIEnv *, jclass, const jvalue *) = (decltype(dispatch))method->addr_array;
     if constexpr (std::is_same_v<T, void>) {
-        dispatch(val);
+        dispatch(env, clz, val);
     } else {
-        return dispatch(val);
+        return dispatch(env, clz, val);
     }
 }
 
@@ -601,12 +601,12 @@ ABI_ATTR static T iface_CallNonVirtualMethod(JNIEnv *env, jobject obj, jclass jc
 
     va_list va;
     va_start(va, meth);
-    T (*dispatch)(void *, va_list) = (decltype(dispatch))method->addr_variadic;
+    T (*dispatch)(JNIEnv *, jobject, jclass, va_list) = (decltype(dispatch))method->addr_variadic;
     if constexpr (std::is_same_v<T, void>) {
-        dispatch(obj, va);
+        dispatch(env, obj, jclazz, va);
         va_end(va);
     } else {
-        T ret = dispatch(obj, va);
+        T ret = dispatch(env, obj, jclazz, va);
         va_end(va);
         return ret;
     }
@@ -623,11 +623,11 @@ ABI_ATTR static T iface_CallNonVirtualMethodV(JNIEnv *env, jobject obj, jclass j
             return (T)0;
     }
 
-    T (*dispatch)(void *, va_list) = (decltype(dispatch))method->addr_variadic;
+    T (*dispatch)(JNIEnv *, jobject, jclass, va_list) = (decltype(dispatch))method->addr_variadic;
     if constexpr (std::is_same_v<T, void>) {
-        dispatch(obj, va);
+        dispatch(env, obj, jclazz, va);
     } else {
-        return dispatch(obj, va);
+        return dispatch(env, obj, jclazz, va);
     }
 }
 
@@ -642,11 +642,11 @@ ABI_ATTR static T iface_CallNonVirtualMethodA(JNIEnv *env, jobject obj, jclass j
             return (T)0;
     }
 
-    T (*dispatch)(void *, const jvalue *) = (decltype(dispatch))method->addr_array;
+    T (*dispatch)(JNIEnv *, jobject, jclass, const jvalue *) = (decltype(dispatch))method->addr_array;
     if constexpr (std::is_same_v<T, void>) {
-        dispatch(obj, val);
+        dispatch(env, obj, jclazz, val);
     } else {
-        return dispatch(obj, val);
+        return dispatch(env, obj, jclazz, val);
     }
 }
 
@@ -1074,9 +1074,4 @@ jint JNI_CreateJavaVM(JavaVM **p_vm, JNIEnv **p_env, void *vm_args)
     vm->AttachCurrentThread((JNIEnv**)p_env, NULL);
 
     return JNI_OK;
-}
-
-JNIEnv *JNIEXT_GetCurrentEnv()
-{
-    return tls_env;
 }
