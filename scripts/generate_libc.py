@@ -4,9 +4,19 @@
 from ctypes import *
 import clang.enumerations
 import clang.cindex
+import clang.cindex as cl
 import sys
 import glob
 import sys
+import argparse
+
+parser = argparse.ArgumentParser(
+    prog="generate_libc.py",
+    description="Generate the bionic export tables and headers")
+
+parser.add_argument('arch', type=str)
+parser.add_argument('--llvm-library-file', help="LLVM library file")
+parser.add_argument('--llvm-includes', nargs='+')
 
 arch = ""
 target_platform = ""
@@ -31,13 +41,6 @@ def handle_diagnostics(diags):
     if should_error:
         print("Fatal error processing file.")
         exit(-1)
-
-def set_arch(new_arch):
-    global arch, target_platform, build_path
-
-    arch=new_arch
-    target_platform="--target={arch}".format(arch=arch)
-    build_path="build/{arch}/".format(arch=arch)
 
 conf = clang.cindex.conf
 impl = {}
@@ -192,13 +195,27 @@ def extract_c_impl_functions(node):
 
 
 if __name__ == '__main__':
-    if sys.argv[1]:
-        set_arch(sys.argv[1])
+    args = parser.parse_args(sys.argv[1:])
+
+    if not args.arch:
+        parser.print_help()
+        sys.exit(-1)
+
+    if args.llvm_library_file:
+        cl.Config.set_library_file(args.llvm_library_file)
+
+    if args.llvm_includes:
+        includes.extend(['-I{}'.format(path) for path in args.llvm_includes])
+
+    arch=args.arch
+    target_platform="--target={arch}".format(arch=arch)
+    build_path="build/{arch}/".format(arch=arch)
 
     print("{call}: settings:".format(call=sys.argv[0]))
     print("# arch={}".format(arch))
     print("# target_platform={}".format(target_platform))
     print("# build_path={}".format(build_path))
+    print("# includes={}".format(", ".join(includes)))
 
     if not arch:
         raise Exception("No architecture defined.")

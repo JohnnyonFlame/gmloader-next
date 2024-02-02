@@ -13,15 +13,20 @@ Corrections, fixes, issue reports and optimizations are always welcome.
 ### Building and Deploying [example]:
 -----
 
-- You can specify the architecture of the loader as such:
+- `ARCH`: Specify the architecture, e.g.: `aarch64-linux-gnu`
+- `LLVM_FILE`: Specify the LLVM Clang library file, e.g.: `/usr/lib/llvm-9/lib/libclang-9.so.1` for clang-9.
+- `LLVM_INC`: Specify the path for LLVM includes for your architecture, e.g.: `aarch64-linux-gnu`.
+- `OPTM`: Specify the optimization flags, e.g.: `-O3`, `-Os` or `-Og -ggdb`.
+
 ```bash
 make -f Makefile.gmloader ARCH=aarch64-linux-gnu
 ```
 
-- Or you can build all supported architectures at once:
-```bash
-make -f Makefile.gmloader cross-all
-```
+In order to deploy, you must copy the `lib` redist folder in the application's folder,
+those files are part of the runtime, and are required to provide the functionality needed
+by the runner.
+
+See [the related documentation](lib/README) for reference.
 
 ### Debugging:
 -----
