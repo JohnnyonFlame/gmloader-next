@@ -83,8 +83,7 @@ static void MoveTaskToBack(JNIEnv *env, jclass clz)
 
 static int OsGetInfo(JNIEnv *env, jclass clz)
 {
-    JNIEnv *env = JNIEXT_GetCurrentEnv();
-    String osinfo_arr[] = {
+    static String osinfo_arr[] = {
         /* "RELEASE", */       String("v1.0"),
         /* "MODEL", */         String("Homebrew"),
         /* "DEVICE", */        String("Homebrew"),
@@ -106,6 +105,7 @@ static int OsGetInfo(JNIEnv *env, jclass clz)
 }
 
 const ManagedMethod RunnerJNILibClassManagedMethods[] = {
+    ManagedMethod::RegisterStatic<OsGetInfo>(RunnerJNILibClass::clazz, "OsGetInfo", "()I"),
     ManagedMethod::RegisterStatic<GamepadAxesValues>(RunnerJNILibClass::clazz, "GamepadAxesValues", "(I)[F"),
     ManagedMethod::RegisterStatic<MoveTaskToBack>(RunnerJNILibClass::clazz, "MoveTaskToBack", "()V"),
     NULL
