@@ -55,6 +55,7 @@ all: build/${ARCH}/gmloader/gmloader
 clean:
 	rm -rf build/${ARCH}
 
+# Include libbsd/libmd and their relevant flags
 -include 3rdparty/libbsd.mk
 
 # By repeating the generated headers on this rule, we force them to start building
@@ -64,7 +65,7 @@ build/${ARCH}/gmloader/gmloader: ${LIBC_TABS} $(BSD_OBJ) $(OBJ)
 
 build/${ARCH}/%.cpp.o: %.cpp
 	@mkdir -p $(@D)
-	$(CXX) $(CXXFLAGS) -c $< -o $@
+	$(CXX) $(CXXFLAGS) $(BSD_FLAGS) $(MD_FLAGS) -c $< -o $@
 
 # The libc_table.cpp symbol table depends on the generated headers
 %/libc_table.cpp: ${LIBC_TABS};

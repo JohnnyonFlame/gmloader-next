@@ -57,26 +57,26 @@ BSD_OBJ=\
 	$(patsubst ./3rdparty/libbsd/src/%.c,./build/${ARCH}/libbsd/%.c.o,${BSD_SRC}) \
 	$(patsubst ./3rdparty/libmd/src/%.c,./build/${ARCH}/libmd/%.c.o,${MD_SRC})
 
+BSD_CONFIG=-include 3rdparty/libbsd-config/libbsd.${ARCH}.h
 BSD_FLAGS=\
 	$(CFLAGS) \
 	-DLIBBSD_OVERLAY \
 	-DLIBBSD_DISABLE_DEPRECATED \
 	-D__REENTRANT \
-	-include 3rdparty/libbsd-config/libbsd.${ARCH}.h \
 	-I./3rdparty/libbsd/include \
 	-I./3rdparty/libbsd-config \
 	-I./3rdparty/libbsd/include/bsd
 
+MD_CONFIG=-include 3rdparty/libbsd-config/libmd.${ARCH}.h
 MD_FLAGS=\
 	$(CFLAGS) \
-	-include 3rdparty/libbsd-config/libmd.${ARCH}.h \
 	-I./3rdparty/libbsd-config \
 	-I./3rdparty/libmd/include
 
 build/${ARCH}/libbsd/%.c.o: 3rdparty/libbsd/src/%.c
 	@mkdir -p $(@D)
-	$(CC) $(BSD_FLAGS) -c $< -o $@
+	$(CC) $(BSD_CONFIG) $(BSD_FLAGS) -c $< -o $@
 
 build/${ARCH}/libmd/%.c.o: 3rdparty/libmd/src/%.c
 	@mkdir -p $(@D)
-	$(CC) $(MD_FLAGS) -c $< -o $@
+	$(CC) $(MD_CONFIG) $(MD_FLAGS) -c $< -o $@

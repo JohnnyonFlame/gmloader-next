@@ -21,7 +21,7 @@ parser.add_argument('--llvm-includes', nargs='+')
 arch = ""
 target_platform = ""
 build_path = ""
-includes = ["-I./", "-I./loader", "-I./thunks"]
+includes = ["-I./", "-I./loader", "-I./thunks", "-I./3rdparty/libmd/include", "-I./3rdparty/libbsd/include"]
 
 def display_diagnostic(diag):
     severity = "Error" if diag.severity >= 3 else "Warning"
