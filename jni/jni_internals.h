@@ -227,4 +227,5 @@ extern "C" {
 
 #define REGISTER_FIELD(clz, field) \
     {.clazz = &clz::clazz, .name = #field, .offset = (uintptr_t)&(((clz*)0x0)->field), .is_static = 0}
-    
+
+#define REGISTER_STATIC_METHOD(clz, method, sig) ManagedMethod::RegisterStatic<method>(clz::clazz, #method, sig)

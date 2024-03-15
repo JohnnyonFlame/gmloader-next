@@ -105,9 +105,9 @@ static int OsGetInfo(JNIEnv *env, jclass clz)
 }
 
 const ManagedMethod RunnerJNILibClassManagedMethods[] = {
-    ManagedMethod::RegisterStatic<OsGetInfo>(RunnerJNILibClass::clazz, "OsGetInfo", "()I"),
-    ManagedMethod::RegisterStatic<GamepadAxesValues>(RunnerJNILibClass::clazz, "GamepadAxesValues", "(I)[F"),
-    ManagedMethod::RegisterStatic<MoveTaskToBack>(RunnerJNILibClass::clazz, "MoveTaskToBack", "()V"),
+    REGISTER_STATIC_METHOD(RunnerJNILibClass, OsGetInfo, "()I"),
+    REGISTER_STATIC_METHOD(RunnerJNILibClass, GamepadAxesValues, "(I)[F"),
+    REGISTER_STATIC_METHOD(RunnerJNILibClass, MoveTaskToBack, "()V"),
     NULL
 };
 
