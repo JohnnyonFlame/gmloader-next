@@ -21,7 +21,10 @@ ABI_ATTR static void alBufferMarkNeedsFreed_impl(ALuint buffer)
 
 ABI_ATTR static void alSourced_impl(ALuint source, ALenum param, ALdouble value)
 {
-    /* do nothing? the properties GM is using seem to be proprietary... */
+    // Apparently, there are some missing LOOP_START and LOOP_END properties,
+    // if a game has problems with these, then we'll have to start shipping
+    // vendorized builds of OpenAL to emulate this behavior.
+    // alSourcedSOFT(source, param, value);
 }
 
 DynLibFunction symtable_openal[] = {
@@ -32,6 +35,7 @@ DynLibFunction symtable_openal[] = {
     NO_THUNK("_Z11alSourceBusjPv", (uintptr_t)&alBufferMarkNeedsFreed_impl),
     NO_THUNK("alSourced", (uintptr_t)&alSourced_impl),
     NO_THUNK("_Z9alSourcedjid", (uintptr_t)&alSourced_impl),
+    NO_THUNK("alSourcedSOFT", (uintptr_t)&alSourced_impl),
 
     THUNK_DIRECT(alDopplerFactor),
     THUNK_DIRECT(alDopplerVelocity),
