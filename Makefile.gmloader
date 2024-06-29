@@ -1,8 +1,9 @@
-ARCH?=aarch64-linux-gnu
-CC?=${ARCH}-gcc
-CXX?=${ARCH}-g++
-LD?=${ARCH}-ld
-PKG_CONFIG?=${ARCH}-pkg-config
+ARCH ?= aarch64-linux-gnu
+CROSS ?= ${ARCH}-
+CC := ${CROSS}gcc
+CXX := ${CROSS}g++
+LD := ${CROSS}ld
+PKG_CONFIG := ${CROSS}pkg-config
 
 LIBS=\
 	-pthread \
