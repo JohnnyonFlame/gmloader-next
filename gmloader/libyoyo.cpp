@@ -160,7 +160,7 @@ void patch_libyoyo(so_module *mod)
     ENSURE_SYMBOL(mod, g_TextureScale, "g_TextureScale");
     ENSURE_SYMBOL(mod, InitLLVM, "_Z8InitLLVMP9SLLVMVars");
     ENSURE_SYMBOL(mod, InvalidateTextureState, "_Z23_InvalidateTextureStatev");
-    ENSURE_SYMBOL(mod, MemoryManager__Free, "_ZN13MemoryManager4FreeEPv", "_ZN13MemoryManager4FreeEPKv");
+    ENSURE_SYMBOL(mod, MemoryManager__Free, "_ZN13MemoryManager4FreeEPv", "_ZN13MemoryManager4FreeEPKv", "_ZN13MemoryManager4FreeEPKvb");
     ENSURE_SYMBOL(mod, Mutex__ctor, "_ZN5MutexC1EPKc");
     ENSURE_SYMBOL(mod, Mutex__dtor, "_ZN5MutexD2Ev", "_ZN5MutexD1Ev");
     ENSURE_SYMBOL(mod, New_Room, "New_Room");
