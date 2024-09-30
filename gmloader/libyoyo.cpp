@@ -28,6 +28,7 @@ ABI_ATTR void (*GamepadUpdate)() = NULL;
 ABI_ATTR void (*InitLLVM)(LLVMVars *) = NULL;
 ABI_ATTR void (*InvalidateTextureState)() = NULL;
 ABI_ATTR void (*MemoryManager__Free)(void *) = NULL;
+ABI_ATTR void (*MemoryManager__Free_2)(void *) = NULL;
 ABI_ATTR void (*Mutex__ctor)(void*, char*) = NULL;
 ABI_ATTR void (*Mutex__dtor)(void *) = NULL;
 ABI_ATTR void (*SetWorkingDirectory_ptr)() = NULL;
@@ -172,7 +173,6 @@ void patch_libyoyo(so_module *mod)
     ENSURE_SYMBOL(mod, g_TextureScale, "g_TextureScale");
     ENSURE_SYMBOL(mod, InitLLVM, "_Z8InitLLVMP9SLLVMVars");
     ENSURE_SYMBOL(mod, InvalidateTextureState, "_Z23_InvalidateTextureStatev");
-    ENSURE_SYMBOL(mod, MemoryManager__Free, "_ZN13MemoryManager4FreeEPv", "_ZN13MemoryManager4FreeEPKv");
     ENSURE_SYMBOL(mod, Mutex__ctor, "_ZN5MutexC1EPKc");
     ENSURE_SYMBOL(mod, Mutex__dtor, "_ZN5MutexD2Ev", "_ZN5MutexD1Ev");
     ENSURE_SYMBOL(mod, New_Room, "New_Room");
@@ -190,6 +190,13 @@ void patch_libyoyo(so_module *mod)
     ENSURE_SYMBOL(mod, _IO_KeyPressed, "_IO_KeyPressed", "l_IO_KeyPressed");
     ENSURE_SYMBOL(mod, _IO_KeyReleased, "_IO_KeyReleased", "l_IO_KeyReleased");
     ENSURE_SYMBOL(mod, _IO_LastKey, "_IO_LastKey", "l_IO_LastKey");
+
+    // Versioned symbols
+    MemoryManager__Free = (decltype(MemoryManager__Free))so_symbol(mod, "_ZN13MemoryManager4FreeEPv");
+    if (!MemoryManager__Free)
+        MemoryManager__Free = (decltype(MemoryManager__Free))so_symbol(mod, "_ZN13MemoryManager4FreeEPKv");
+    MemoryManager__Free_2 = (decltype(MemoryManager__Free_2))so_symbol(mod, "_ZN13MemoryManager4FreeEPKvb");
+
 
     // Hook messages for debug
     hook_symbol(mod, "_Z11ShowMessagePKc", (uintptr_t)&show_message, 1);
