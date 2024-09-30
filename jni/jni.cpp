@@ -13,6 +13,7 @@
 
 extern const JNIInvokeInterface jvm_funcs;
 extern const JNINativeInterface jnienv_funcs;
+static JavaVM *jvm_global = NULL;
 
 #define free(...)
 
@@ -386,6 +387,7 @@ ABI_ATTR static jint iface_MonitorExit(JNIEnv *env, jobject jobj)
 
 ABI_ATTR static jint iface_GetJavaVM(JNIEnv *env, JavaVM** vm)
 {
+    *vm = jvm_global;
     return 0;
 }
 
@@ -1069,9 +1071,13 @@ const JNIInvokeInterface jvm_funcs = {
 
 jint JNI_CreateJavaVM(JavaVM **p_vm, JNIEnv **p_env, void *vm_args)
 {
-    JavaVM *vm = (JavaVM*)calloc(1, sizeof(JavaVM));
-    vm->functions = &jvm_funcs;
-    vm->AttachCurrentThread((JNIEnv**)p_env, NULL);
+    if (jvm_global == NULL) {
+        jvm_global = (JavaVM*)calloc(1, sizeof(JavaVM));
+        jvm_global->functions = &jvm_funcs;
+    }
+
+    jvm_global->AttachCurrentThread((JNIEnv**)p_env, NULL);
+    *p_vm = jvm_global; 
 
     return JNI_OK;
 }
