@@ -130,6 +130,18 @@ ABI_ATTR void force_platform_type_gms2(void *self, int n, RValue *args)
     args[0].rvalue.val = FORCE_PLATFORM;
 }
 
+ABI_ATTR static void steam_initialised(RValue *ret, void *self, void *other, int argc, RValue *args)
+{
+    ret->kind = VALUE_REAL;
+    ret->rvalue.val = 0;
+}
+
+ABI_ATTR static void steam_stats_ready(RValue *ret, void *self, void *other, int argc, RValue *args)
+{
+    ret->kind = VALUE_REAL;
+    ret->rvalue.val = 0;
+}
+
 void patch_libyoyo(so_module *mod)
 {
     // Load all of the native symbols referenced
@@ -213,6 +225,9 @@ void patch_libyoyo(so_module *mod)
     for (int i = 0; i < ARRAY_SIZE(fake_functs); i++) {
         Function_Add(fake_functs[i], stub_gml, 1, 1);
     }
+
+    Function_Add("steam_initialised", steam_initialised, 0, 1);
+    Function_Add("steam_stats_ready", steam_stats_ready, 0, 1);
 
     so_symbol_fix_ldmia(mod, "_Z11Shader_LoadPhjS_");
 }
