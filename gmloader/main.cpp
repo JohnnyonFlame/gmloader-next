@@ -168,13 +168,13 @@ int main(int argc, char *argv[])
 
     int cont = 1;
     int w, h;
-    RunnerJNILibClass::Startup(env, 0, apk_path_arg, save_dir_arg, pkg_dir_arg, 4, 0);
+    RunnerJNILib::Startup(env, 0, apk_path_arg, save_dir_arg, pkg_dir_arg, 4, 0);
     while (cont != 0 && cont != 2 && RunnerJNILib_MoveTaskToBackCalled == 0) {
         if (update_inputs(sdl_win) != 1)
             break;
         SDL_GetWindowSize(sdl_win, &w, &h);
-        cont = RunnerJNILibClass::Process(env, 0, w, h, 0, 0, 0, 0, 0, 60);
-        if (RunnerJNILibClass::canFlip(env, 0))
+        cont = RunnerJNILib::Process(env, 0, w, h, 0, 0, 0, 0, 0, 60);
+        if (RunnerJNILib::canFlip(env, 0))
             SDL_GL_SwapWindow(sdl_win);
     }
 

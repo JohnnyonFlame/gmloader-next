@@ -110,12 +110,12 @@ struct Class {
 };
 
 struct Object {
-    Class *clazz;
-    Object(Class *clz) : clazz(clz) { }
-    /* ... */
+    virtual Class *_getClass() = 0;
 };
 
-struct ArrayObject : Object {
+class ArrayObject : public Object {
+public:
+    Class *_getClass() { return NULL; } // TODO
     Class *instance_clazz;
     jsize count;
     jsize element_size;
@@ -209,8 +209,11 @@ public:
     static int register_class(const Class &clazz);
 };
 
-class String : Object {
+class String : public Object {
 public:
+    static Class clazz;
+    Class *_getClass() { return &clazz; }
+
     char *str;
     String(char *str);
     String(const char *str);
@@ -228,4 +231,10 @@ extern "C" {
 #define REGISTER_FIELD(clz, field) \
     {.clazz = &clz::clazz, .name = #field, .offset = (uintptr_t)&(((clz*)0x0)->field), .is_static = 0}
 
-#define REGISTER_STATIC_METHOD(clz, method, sig) ManagedMethod::RegisterStatic<method>(clz::clazz, #method, sig)
+#define REGISTER_INIT_METHOD(clz, method, sig) ManagedMethod::RegisterNonVirtual<method>(clz::clazz, "<init>", sig)
+
+#define REGISTER_STATIC_METHOD(clz, method, sig) ManagedMethod::RegisterStatic<clz::method>(clz::clazz, #method, sig)
+
+#define REGISTER_METHOD(clz, method, sig) ManagedMethod::Register<clz::method>(clz::clazz, #method, sig)
+
+#define REGISTER_NONVIRTUAL(clz, method, sig) ManagedMethod::RegisterNonVirtual<clz::method>(clz::clazz, #method, sig)
