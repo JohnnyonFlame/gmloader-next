@@ -9,6 +9,7 @@
 ABI_ATTR create_async_event_with_ds_map_t CreateAsynEventWithDSMap = NULL;
 ABI_ATTR create_ds_map_t CreateDsMap = NULL;
 ABI_ATTR bool (*dsMapAddDouble)(int, const char*, double) = NULL;
+ABI_ATTR bool (*dsMapAddInt)(int, const char*, int) = NULL;
 ABI_ATTR bool (*dsMapAddString)(int, const char*, const char*) = NULL;
 ABI_ATTR fct_add_t Function_Add = NULL;
 ABI_ATTR float (*Audio_GetTrackPos)(int sound_id) = NULL;
@@ -150,9 +151,10 @@ void patch_libyoyo(so_module *mod)
     ENSURE_SYMBOL(mod, Audio_PrepareGroup, "_Z18Audio_PrepareGroupi");
     // ENSURE_SYMBOL(mod, Audio_WAVs, "_Z10Audio_WAVsPhjS_i");
     ENSURE_SYMBOL(mod, CreateAsynEventWithDSMap, "_Z24CreateAsynEventWithDSMapii");
-    ENSURE_SYMBOL(mod, CreateDsMap, "_Z11CreateDsMapiz");
+    ENSURE_SYMBOL(mod, CreateDsMap, "_Z11CreateDsMapiz", "dsMapCreate");
     ENSURE_SYMBOL(mod, dsMapAddString, "dsMapAddString");
-    ENSURE_SYMBOL(mod, dsMapAddDouble, "dsMapAddDouble");
+    // ENSURE_SYMBOL(mod, dsMapAddDouble, "dsMapAddDouble");
+    ENSURE_SYMBOL(mod, dsMapAddInt, "dsMapAddInt");
     ENSURE_SYMBOL(mod, Current_Room, "Current_Room");
     ENSURE_SYMBOL(mod, Function_Add, "_Z12Function_AddPKcPFvR6RValueP9CInstanceS4_iPS1_Eib", "_Z12Function_AddPcPFvR6RValueP9CInstanceS3_iPS0_Eib");
     ENSURE_SYMBOL(mod, FreePNGFile, "_Z11FreePNGFilev");
@@ -181,7 +183,6 @@ void patch_libyoyo(so_module *mod)
     ENSURE_SYMBOL(mod, the_numb, "the_numb");
     ENSURE_SYMBOL(mod, YYGetInt32, "_Z10YYGetInt32PK6RValuei");
     ENSURE_SYMBOL(mod, YYGetReal, "_Z9YYGetRealPK6RValuei");
-    ENSURE_SYMBOL(mod, YYCreateString, "_Z14YYCreateStringP6RValuePKc");
     ENSURE_SYMBOL(mod, _IO_ButtonDown, "_IO_ButtonDown");
     ENSURE_SYMBOL(mod, _IO_ButtonPressed, "_IO_ButtonPressed");
     ENSURE_SYMBOL(mod, _IO_ButtonReleased, "_IO_ButtonReleased");
@@ -192,11 +193,11 @@ void patch_libyoyo(so_module *mod)
     ENSURE_SYMBOL(mod, _IO_LastKey, "_IO_LastKey", "l_IO_LastKey");
 
     // Versioned symbols
-    MemoryManager__Free = (decltype(MemoryManager__Free))so_symbol(mod, "_ZN13MemoryManager4FreeEPv");
-    if (!MemoryManager__Free)
-        MemoryManager__Free = (decltype(MemoryManager__Free))so_symbol(mod, "_ZN13MemoryManager4FreeEPKv");
-    MemoryManager__Free_2 = (decltype(MemoryManager__Free_2))so_symbol(mod, "_ZN13MemoryManager4FreeEPKvb");
+    FIND_SYMBOL(mod, MemoryManager__Free, "_ZN13MemoryManager4FreeEPv", "_ZN13MemoryManager4FreeEPKv");
+    FIND_SYMBOL(mod, MemoryManager__Free_2, "_ZN13MemoryManager4FreeEPKvb");
 
+    // Unavailable in older versions
+    FIND_SYMBOL(mod, YYCreateString, "_Z14YYCreateStringP6RValuePKc");
 
     // Hook messages for debug
     hook_symbol(mod, "_Z11ShowMessagePKc", (uintptr_t)&show_message, 1);

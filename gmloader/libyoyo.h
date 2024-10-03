@@ -214,6 +214,7 @@ extern ABI_ATTR create_async_event_with_ds_map_t CreateAsynEventWithDSMap;
 extern ABI_ATTR create_ds_map_t CreateDsMap;
 extern ABI_ATTR fct_add_t Function_Add;
 extern ABI_ATTR bool (*dsMapAddDouble)(int, const char*, double);
+extern ABI_ATTR bool (*dsMapAddInt)(int, const char*, int);
 extern ABI_ATTR bool (*dsMapAddString)(int, const char*, const char*);
 
 extern ABI_ATTR float (*Audio_GetTrackPos)(int sound_id);

@@ -40,6 +40,17 @@ extern "C" {
     } \
   }
 
+#define FIND_SYMBOL(mod, symbol, ...) \
+  { \
+    const char *aliases[] = {__VA_ARGS__}; \
+    for (uint __i = 0; __i < ARRAY_SIZE(aliases); __i++) { \
+      if ((*(uintptr_t*)&symbol = (uintptr_t)so_symbol(mod, aliases[__i]))) \
+        break; \
+    } \
+    if (symbol == NULL) { \
+      warning("Symbol \"%s\" not found.\n", #symbol); \
+    } \
+  }
 
 #define MAX_DATA_SEG 16
 ABI_ATTR typedef int (* init_array_t)();

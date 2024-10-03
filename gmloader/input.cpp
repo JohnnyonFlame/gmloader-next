@@ -219,7 +219,7 @@ int update_inputs(SDL_Window *win)
             // Send the async gamepad event
             int dsMap = CreateDsMap(0);
             dsMapAddString(dsMap, "event_type", strdup(ev));
-            dsMapAddDouble(dsMap, "pad_index", i);
+            dsMapAddInt(dsMap, "pad_index", i);
             CreateAsynEventWithDSMap(dsMap, 0x4b);
         }
     }
