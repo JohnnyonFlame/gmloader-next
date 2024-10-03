@@ -12,7 +12,7 @@ int read_config_file(const char* path){
 
     // default values
     gmloader_config.apk_path = "game.apk";
-    gmloader_config.save_dir = "gamedata";
+    gmloader_config.save_dir = "";
     gmloader_config.show_cursor = true;
 
     try{

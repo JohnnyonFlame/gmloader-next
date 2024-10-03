@@ -86,9 +86,9 @@ int main(int argc, char *argv[])
 
     show_config();
 
-    fs::path work_dir, apk_path;
-    work_dir = fs::current_path();
+    fs::path work_dir, save_dir, apk_path;
     work_dir = fs::canonical(fs::current_path()) / "";
+    save_dir = work_dir / gmloader_config.save_dir.c_str();
     apk_path = work_dir / gmloader_config.apk_path.c_str();
 
     int err;
@@ -136,7 +136,7 @@ int main(int argc, char *argv[])
     }
 
     String *apk_path_arg = (String *)env->NewStringUTF(apk_path.c_str());
-    String *save_dir_arg = (String *)env->NewStringUTF(work_dir.c_str());
+    String *save_dir_arg = (String *)env->NewStringUTF(save_dir.c_str());
     String *pkg_dir_arg = (String *)env->NewStringUTF("com.johnny.loader");
     printf("apk_path %s save_dir %s pkg_dir %s\n", apk_path_arg->str, save_dir_arg->str, pkg_dir_arg->str);
 
