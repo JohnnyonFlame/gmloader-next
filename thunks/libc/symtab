@@ -1,5 +1,6 @@
 # Defined here are symbols we want to export to the guest elf file.
 # custom
+__android_log_write
 __android_log_print
 __android_log_vprint
 # libdl.so

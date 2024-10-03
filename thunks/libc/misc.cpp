@@ -97,6 +97,13 @@ extern "C" ABI_ATTR int* __errno_impl(void)
     return __errno_location();
 }
 
+extern "C" ABI_ATTR int __android_log_write_impl(int prio, const char *tag, const char *text)
+{
+    char andlog[2048] = {};
+    warning("LOG[%s]: %s\n", tag, text);
+    return 1;
+}
+
 extern "C" ABI_ATTR int __android_log_print_impl(int prio, const char *tag, const char *fmt, ...)
 {
     char andlog[2048] = {};
