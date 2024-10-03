@@ -4,13 +4,7 @@
 #include "jni.h"
 #include "jni_internals.h"
 
-class StringClass {
-public:
-    static Class clazz;
-    /* ... */
-};
-
-Class StringClass::clazz = {
+Class String::clazz = {
     .classpath = "java/lang/String",
     .classname = "String",
     .managed_methods = {NULL},
@@ -18,12 +12,12 @@ Class StringClass::clazz = {
     .instance_size = sizeof(String)
 };
 
-String::String(char *str) : Object(&StringClass::clazz) {
+String::String(char *str) {
     this->str = str;
 }
 
-String::String(const char *str) : Object(&StringClass::clazz) {
+String::String(const char *str) {
     this->str = strdup(str);
 }
 
-static const int registered = ClassRegistry::register_class(StringClass::clazz);
+static const int registered = ClassRegistry::register_class(String::clazz);

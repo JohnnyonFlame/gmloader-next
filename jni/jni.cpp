@@ -17,11 +17,18 @@ static JavaVM *jvm_global = NULL;
 
 #define free(...)
 
+template <typename T> ABI_ATTR static T iface_CallNonVirtualMethodV(JNIEnv *env, jobject obj, jclass jclazz, jmethodID meth, va_list va);
+template <typename T> ABI_ATTR static T iface_CallNonVirtualMethodA(JNIEnv *env, jobject obj, jclass jclazz, jmethodID meth, const jvalue *val);
+
+
 ABI_ATTR static jobjectArray iface_NewObjectArray(JNIEnv *env, jsize len, jclass clz, jobject init)
 {
     Class *clazz = (Class*)clz;
     Object *first_elem = (Object*)init;
     if (first_elem == NULL)
+        return NULL;
+
+    if (clazz->instance_size == 0)
         return NULL;
 
     ArrayObject *arr = (ArrayObject*)calloc(1, sizeof(ArrayObject));
@@ -190,20 +197,41 @@ ABI_ATTR static jobject iface_AllocObject(JNIEnv *env, jclass jclazz)
 
 ABI_ATTR static jobject iface_NewObject(JNIEnv *env, jclass jclazz, jmethodID methodID, ...)
 {
-    WARN_STUB;
-    return NULL;
+    Class *clazz = (Class*)jclazz;
+    if (clazz->instance_size == 0)
+        return NULL;
+ 
+    jobject obj = (jobject)calloc(1, clazz->instance_size);
+    va_list va;
+    va_start(va, methodID);
+    iface_CallNonVirtualMethodV<void>(env, obj, jclazz, methodID, va);
+    va_end(va);
+    return obj;
 }
 
 ABI_ATTR static jobject iface_NewObjectV(JNIEnv *env, jclass jclazz, jmethodID methodID, va_list args)
 {
-    WARN_STUB;
-    return NULL;
+    Class *clazz = (Class*)jclazz;
+    if (clazz == NULL)
+        return NULL;
+
+    if (clazz->instance_size == 0)
+        return NULL;
+
+    jobject obj = (jobject)calloc(1, clazz->instance_size);
+    iface_CallNonVirtualMethodV<void>(env, obj, jclazz, methodID, args);
+    return obj;
 }
 
 ABI_ATTR static jobject iface_NewObjectA(JNIEnv *env, jclass jclazz, jmethodID methodID, const jvalue* args)
 {
-    WARN_STUB;
-    return NULL;
+    Class *clazz = (Class*)jclazz;
+    if (clazz->instance_size == 0)
+        return NULL;
+
+    jobject obj = (jobject)calloc(1, clazz->instance_size);
+    iface_CallNonVirtualMethodA<void>(env, obj, jclazz, methodID, args);
+    return obj;
 }
 
 ABI_ATTR static jclass iface_GetObjectClass(JNIEnv *env, jobject jobj)
@@ -212,7 +240,7 @@ ABI_ATTR static jclass iface_GetObjectClass(JNIEnv *env, jobject jobj)
     if (obj == NULL)
         return NULL;
 
-    return (jclass)obj->clazz;
+    return (jclass)obj->_getClass();
 }
 
 ABI_ATTR static jboolean iface_IsInstanceOf(JNIEnv *env, jobject jobj, jclass jclazz)
@@ -403,8 +431,11 @@ ABI_ATTR static void iface_GetStringUTFRegion(JNIEnv *env, jstring jstr, jsize s
 
 ABI_ATTR static void* iface_GetPrimitiveArrayCritical(JNIEnv *env, jarray jarr, jboolean* isCopy)
 {
-    //WARN_STUB;
-    return NULL;
+    ArrayObject *array = (ArrayObject*)jarr;
+    if (jarr == NULL)
+        return NULL;
+    
+    return array->elements;
 }
 
 ABI_ATTR static void iface_ReleasePrimitiveArrayCritical(JNIEnv *env, jarray jarr, void* carray, jint mode)
@@ -712,7 +743,6 @@ ABI_ATTR static T iface_NewArray(JNIEnv *env, jsize length)
     if constexpr (std::is_same_v<T, jdoubleArray>) t = sizeof(jdouble);
 
     ArrayObject *array = (ArrayObject *)calloc(1, sizeof(ArrayObject)); 
-    array->clazz = NULL; // TODO
     array->count = length;
     array->element_size = t;
     array->elements = calloc(length, t);

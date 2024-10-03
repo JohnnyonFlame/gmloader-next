@@ -61,11 +61,24 @@ ABI_ATTR void gamepad_is_connected(RValue *ret, void *self, void *other, int arg
     ret->rvalue.val = (gamepad->is_available) ? 1.0 : 0.0;
 }
 
+#define CONTROLLER_NAME "Xbox 360 Controller (XInput STANDARD GAMEPAD)"
 ABI_ATTR void gamepad_get_description(RValue *ret, void *self, void *other, int argc, RValue *args)
 {
-    ret->kind = VALUE_STRING;
-    ret->rvalue.val = 0.0;
-    YYCreateString(ret, "Xbox 360 Controller (XInput STANDARD GAMEPAD)");
+    if (YYCreateString != NULL) {
+        ret->kind = VALUE_STRING;
+        ret->rvalue.val = 0.0;
+        YYCreateString(ret, CONTROLLER_NAME);
+    } else {
+        Ref *ref = (Ref*)malloc(sizeof(*ref));
+        *ref = (Ref){
+            .m_thing = strdup(CONTROLLER_NAME),
+            .m_refCount = 1,
+            .m_size = strlen(CONTROLLER_NAME)
+        };
+
+        ret->kind = VALUE_STRING;
+        ret->rvalue.str = ref;
+    }
 }
 
 ABI_ATTR void gamepad_get_button_threshold(RValue *ret, void *self, void *other, int argc, RValue *args)

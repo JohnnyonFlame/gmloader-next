@@ -110,12 +110,12 @@ struct Class {
 };
 
 struct Object {
-    Class *clazz;
-    Object(Class *clz) : clazz(clz) { }
-    /* ... */
+    virtual Class *_getClass() = 0;
 };
 
-struct ArrayObject : Object {
+class ArrayObject : public Object {
+public:
+    Class *_getClass() { return NULL; } // TODO
     Class *instance_clazz;
     jsize count;
     jsize element_size;
@@ -133,7 +133,7 @@ struct ManagedMethod {
     static const ManagedMethod Register(Class &clazz, const char *name, const char *signature)
     {
         using disp = dispatch<F, JNIEnv *, jobject>;
-        using args = get_function_args<F>::sig::args;
+        using args = typename get_function_args<F>::sig::args;
 
         static_assert(std::tuple_size_v<args> >= 2, "Invalid number of arguments, expect 2 or more.");
         static_assert(std::is_same_v<JNIEnv *, std::tuple_element_t<0, args>>, "First Method argument expected JNIEnv *.");
@@ -152,7 +152,7 @@ struct ManagedMethod {
     static const ManagedMethod RegisterStatic(Class &clazz, const char *name, const char *signature)
     {
         using disp = dispatch<F, JNIEnv *, jclass>;
-        using args = get_function_args<F>::sig::args;
+        using args = typename get_function_args<F>::sig::args;
 
         static_assert(std::tuple_size_v<args> >= 2, "Invalid number of arguments, expect 2 or more.");
         static_assert(std::is_same_v<JNIEnv *, std::tuple_element_t<0, args>>, "First Method argument expected JNIEnv *.");
@@ -171,7 +171,7 @@ struct ManagedMethod {
     static const ManagedMethod RegisterNonVirtual(Class &clazz, const char *name, const char *signature)
     {
         using disp = dispatch<F, JNIEnv *, jobject, jclass>;
-        using args = get_function_args<F>::sig::args;
+        using args = typename get_function_args<F>::sig::args;
 
         static_assert(std::tuple_size_v<args> >= 3, "Invalid number of arguments, expect 3 or more.");
         static_assert(std::is_same_v<JNIEnv *, std::tuple_element_t<0, args>>, "First Method argument expected JNIEnv *.");
@@ -209,8 +209,11 @@ public:
     static int register_class(const Class &clazz);
 };
 
-class String : Object {
+class String : public Object {
 public:
+    static Class clazz;
+    Class *_getClass() { return &clazz; }
+
     char *str;
     String(char *str);
     String(const char *str);
@@ -220,7 +223,32 @@ public:
 
 extern "C" {
     extern void jni_resolve_native(struct so_module *so);
+};
+
+/*
+    To help us clear the ambiguity on overloaded class methods,
+    we use a handy-dandy trick to optionally generate the function type
+    that we want to use optionally.
+    - The template parameter V is always void just so we can exploit the ##__VA_ARGS__ GNU extension
+    to make the list optional.
+    - When R and ...Args are present, we get a type using this information.
+    - When R and ...Args aren't present, the compiler thankfully finds a way to deduce which type it wants
+    from the argument, which will be a specific function and not some overloaded one.
+    - There are overloads for both static and non-static calls (since they have their own preambles)
+*/
+template <typename V = void, typename R, typename ...Args>
+auto DEDUCE_METHOD_HELPER(R (*f)(JNIEnv *, jobject, jclass, Args...))
+{
+    return f;
 }
+
+template <typename V = void, typename R, typename ...Args>
+auto DEDUCE_METHOD_HELPER(R (*f)(JNIEnv *, jclass, Args...))
+{
+    return f;
+}
+
+#define DEDUCE_METHOD_TYPE(method, ...) static_cast<decltype(DEDUCE_METHOD_HELPER<void, ##__VA_ARGS__>(method))>(method)
 
 #define REGISTER_STATIC_FIELD(clz, field) \
     {.clazz = &clz::clazz, .name = #field, .offset = (uintptr_t)&clz::field, .is_static = 1}
@@ -228,4 +256,10 @@ extern "C" {
 #define REGISTER_FIELD(clz, field) \
     {.clazz = &clz::clazz, .name = #field, .offset = (uintptr_t)&(((clz*)0x0)->field), .is_static = 0}
 
-#define REGISTER_STATIC_METHOD(clz, method, sig) ManagedMethod::RegisterStatic<method>(clz::clazz, #method, sig)
+#define REGISTER_INIT_METHOD(clz, method, sig, ...) ManagedMethod::RegisterNonVirtual<DEDUCE_METHOD_TYPE(method, ##__VA_ARGS__)>(clz::clazz, "<init>", sig)
+
+#define REGISTER_STATIC_METHOD(clz, method, sig, ...) ManagedMethod::RegisterStatic<DEDUCE_METHOD_TYPE(clz::method, ##__VA_ARGS__)>(clz::clazz, #method, sig)
+
+#define REGISTER_METHOD(clz, method, sig, ...) ManagedMethod::Register<DEDUCE_METHOD_TYPE(clz::method, ##__VA_ARGS__)>(clz::clazz, #method, sig)
+
+#define REGISTER_NONVIRTUAL(clz, method, sig, ...) ManagedMethod::RegisterNonVirtual<DEDUCE_METHOD_TYPE(clz::method, ##__VA_ARGS__)>(clz::clazz, #method, sig)

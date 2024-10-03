@@ -226,12 +226,6 @@ ABI_ATTR int vsprintf_impl(char *s, const char *fmt, va_list va)
     return ret;
 }
 
-extern int __vsprintf_chk(char *, int, size_t, const char *, va_list);
-ABI_ATTR int __vsprintf_chk_impl(char * s, int flag, size_t slen, const char * format, va_list args)
-{
-    return __vsprintf_chk(s, flag, slen, format, args);
-}
-
 ABI_ATTR int vasprintf_impl(char **s, const char *fmt, va_list args)
 {
     int ret;

@@ -22,12 +22,10 @@ namespace fs = std::filesystem;
 extern DynLibFunction symtable_libc[];
 extern DynLibFunction symtable_zlib[];
 extern DynLibFunction symtable_gles2[];
-extern DynLibFunction symtable_openal[];
 
 extern gmloader::config gmloader_config;
 
 DynLibFunction *so_static_patches[32] = {
-    symtable_openal,
     NULL,
 };
 
@@ -35,11 +33,10 @@ DynLibFunction *so_dynamic_libraries[32] = {
     symtable_libc,
     symtable_zlib,
     symtable_gles2,
-    symtable_openal,
     NULL
 };
 
-int load_module(const char *soname, zip_t *apk, so_module &mod, uintptr_t base_address)
+int load_module(const char *soname, zip_t *apk, so_module &mod, uintptr_t base_address, JavaVM *vm)
 {
     void *buffer;
     size_t image_size = 0;
@@ -66,12 +63,20 @@ int load_module(const char *soname, zip_t *apk, so_module &mod, uintptr_t base_a
 
 load_module_success:
     // Now link the module
-    return so_load(&mod, filepath, base_address, buffer, image_size) == 0;
+    int ret = so_load(&mod, filepath, base_address, buffer, image_size) == 0;
+
+    // And call the JNI_OnLoad method if present
+    auto JNI_OnLoad = (jint (*)(JavaVM *vm, void *reserved))so_symbol(&mod, "JNI_OnLoad");
+    if (JNI_OnLoad != NULL)
+        JNI_OnLoad(vm, NULL);
+
+    return ret;
 }
 
 so_module libm = {};
 so_module libcrt = {};
 so_module stdcpp = {};
+so_module openal = {};
 so_module libyoyo = {};
 
 int RunnerJNILib_MoveTaskToBackCalled = 0;
@@ -104,32 +109,6 @@ int main(int argc, char *argv[])
         return -1;
     }
 
-#ifndef NDEBUG
-    uintptr_t addr_libm = 0x10000000;
-    uintptr_t addr_libcrt = 0x20000000;
-    uintptr_t addr_stdcpp = 0x30000000;
-    uintptr_t addr_yoyo = 0x40000000;
-#else
-    // Release mode should allocate in any way the system deems suitable
-    uintptr_t addr_libm = 0;
-    uintptr_t addr_libcrt = 0;
-    uintptr_t addr_stdcxx = 0;
-    uintptr_t addr_yoyo = 0;
-#endif
-
-    warning("Loading images...\n");
-    // libc.so is implicit (implemented by gmloader)
-    // libopenal.so is statically patched via so_static_patches (so we can overload static builds)
-    if (!load_module("libm.so", apk, libm, addr_libm)) return -1;
-    if (!load_module("libcompiler_rt.so", apk, libcrt, addr_libcrt)) return -1;
-    if (!load_module("libc++_shared.so", apk, stdcpp, addr_stdcpp)) return -1;
-    if (!load_module("libyoyo.so", apk, libyoyo, addr_yoyo)) return -1;
-
-    patch_libyoyo(&libyoyo);
-    patch_input(&libyoyo);
-    patch_gamepad(&libyoyo);
-    patch_mouse(&libyoyo);
-
     // Create the Fake JavaVM environment
     JavaVM *vm = NULL;
     JNIEnv *env = NULL;
@@ -137,6 +116,35 @@ int main(int argc, char *argv[])
         fatal_error("Error initializing JNI Interface!\n");
         return -1;
     }
+
+#ifndef NDEBUG
+    uintptr_t addr_libm = 0x10000000;
+    uintptr_t addr_libcrt = 0x14000000;
+    uintptr_t addr_stdcpp = 0x18000000;
+    uintptr_t addr_openal = 0x1C000000;
+    uintptr_t addr_yoyo = 0x40000000;
+#else
+    // Release mode should allocate in any way the system deems suitable
+    uintptr_t addr_libm = 0;
+    uintptr_t addr_libcrt = 0;
+    uintptr_t addr_stdcxx = 0;
+    uintptr_t addr_openal = 0;
+    uintptr_t addr_yoyo = 0;
+#endif
+
+    warning("Loading images...\n");
+    // libc.so is implicit (implemented by gmloader)
+    // libopenal.so is statically patched via so_static_patches (so we can overload static builds)
+    if (!load_module("libm.so", apk, libm, addr_libm, vm)) return -1;
+    if (!load_module("libcompiler_rt.so", apk, libcrt, addr_libcrt, vm)) return -1;
+    if (!load_module("libc++_shared.so", apk, stdcpp, addr_stdcpp, vm)) return -1;
+    load_module("libopenal.so", apk, openal, addr_openal, vm); /* Some APKs have external libopenal.so */
+    if (!load_module("libyoyo.so", apk, libyoyo, addr_yoyo, vm)) return -1;
+
+    patch_libyoyo(&libyoyo);
+    patch_input(&libyoyo);
+    patch_gamepad(&libyoyo);
+    patch_mouse(&libyoyo);
 
     String *apk_path_arg = (String *)env->NewStringUTF(apk_path.c_str());
     String *save_dir_arg = (String *)env->NewStringUTF(save_dir.c_str());
@@ -193,13 +201,13 @@ int main(int argc, char *argv[])
 
     int cont = 1;
     int w, h;
-    RunnerJNILibClass::Startup(env, 0, apk_path_arg, save_dir_arg, pkg_dir_arg, 4, 0);
+    RunnerJNILib::Startup(env, 0, apk_path_arg, save_dir_arg, pkg_dir_arg, 4, 0);
     while (cont != 0 && cont != 2 && RunnerJNILib_MoveTaskToBackCalled == 0) {
         if (update_inputs(sdl_win) != 1)
             break;
         SDL_GetWindowSize(sdl_win, &w, &h);
-        cont = RunnerJNILibClass::Process(env, 0, w, h, 0, 0, 0, 0, 0, 60);
-        if (RunnerJNILibClass::canFlip(env, 0))
+        cont = RunnerJNILib::Process(env, 0, w, h, 0, 0, 0, 0, 0, 60);
+        if (RunnerJNILib::canFlip(env, 0))
             SDL_GL_SwapWindow(sdl_win);
     }
 

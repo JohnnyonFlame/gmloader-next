@@ -2,9 +2,9 @@
 #include "jni.h"
 #include "jni_internals.h"
 
-class osBuildClass {
+class osBuild : public Object {
 public:
     static Class clazz;
-    /* ... */
+    Class *_getClass() { return &clazz; }
     static String MANUFACTURER;
 };

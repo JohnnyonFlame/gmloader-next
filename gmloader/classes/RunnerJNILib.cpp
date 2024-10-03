@@ -8,32 +8,32 @@
 #include "libyoyo.h"
 
 #define MANGLED_CLASSPATH "Java_com_yoyogames_runner_RunnerJNILib_"
-#define CLASS RunnerJNILibClass
+#define CLASS RunnerJNILib
 
 /*
     Native Function Pointers
 */
 
-decltype(RunnerJNILibClass::Startup)                  RunnerJNILibClass::Startup = NULL;
-decltype(RunnerJNILibClass::CreateVersionDSMap)       RunnerJNILibClass::CreateVersionDSMap = NULL;
-decltype(RunnerJNILibClass::Process)                  RunnerJNILibClass::Process = NULL;
-decltype(RunnerJNILibClass::TouchEvent)               RunnerJNILibClass::TouchEvent = NULL;
-decltype(RunnerJNILibClass::RenderSplash)             RunnerJNILibClass::RenderSplash = NULL;
-decltype(RunnerJNILibClass::Resume)                   RunnerJNILibClass::Resume = NULL;
-decltype(RunnerJNILibClass::Pause)                    RunnerJNILibClass::Pause = NULL;
-decltype(RunnerJNILibClass::KeyEvent)                 RunnerJNILibClass::KeyEvent = NULL;
-decltype(RunnerJNILibClass::SetKeyValue)              RunnerJNILibClass::SetKeyValue = NULL;
-decltype(RunnerJNILibClass::GetAppID)                 RunnerJNILibClass::GetAppID = NULL;
-decltype(RunnerJNILibClass::GetSaveFileName)          RunnerJNILibClass::GetSaveFileName = NULL;
-decltype(RunnerJNILibClass::ExpandCompressedFile)     RunnerJNILibClass::ExpandCompressedFile = NULL;
-decltype(RunnerJNILibClass::iCadeEventDispatch)       RunnerJNILibClass::iCadeEventDispatch = NULL;
-decltype(RunnerJNILibClass::registerGamepadConnected) RunnerJNILibClass::registerGamepadConnected = NULL;
-decltype(RunnerJNILibClass::initGLFuncs)              RunnerJNILibClass::initGLFuncs = NULL;
-decltype(RunnerJNILibClass::canFlip)                  RunnerJNILibClass::canFlip = NULL;
-decltype(RunnerJNILibClass::GCMPushResult)            RunnerJNILibClass::GCMPushResult = NULL;
+decltype(RunnerJNILib::Startup)                  RunnerJNILib::Startup = NULL;
+decltype(RunnerJNILib::CreateVersionDSMap)       RunnerJNILib::CreateVersionDSMap = NULL;
+decltype(RunnerJNILib::Process)                  RunnerJNILib::Process = NULL;
+decltype(RunnerJNILib::TouchEvent)               RunnerJNILib::TouchEvent = NULL;
+decltype(RunnerJNILib::RenderSplash)             RunnerJNILib::RenderSplash = NULL;
+decltype(RunnerJNILib::Resume)                   RunnerJNILib::Resume = NULL;
+decltype(RunnerJNILib::Pause)                    RunnerJNILib::Pause = NULL;
+decltype(RunnerJNILib::KeyEvent)                 RunnerJNILib::KeyEvent = NULL;
+decltype(RunnerJNILib::SetKeyValue)              RunnerJNILib::SetKeyValue = NULL;
+decltype(RunnerJNILib::GetAppID)                 RunnerJNILib::GetAppID = NULL;
+decltype(RunnerJNILib::GetSaveFileName)          RunnerJNILib::GetSaveFileName = NULL;
+decltype(RunnerJNILib::ExpandCompressedFile)     RunnerJNILib::ExpandCompressedFile = NULL;
+decltype(RunnerJNILib::iCadeEventDispatch)       RunnerJNILib::iCadeEventDispatch = NULL;
+decltype(RunnerJNILib::registerGamepadConnected) RunnerJNILib::registerGamepadConnected = NULL;
+decltype(RunnerJNILib::initGLFuncs)              RunnerJNILib::initGLFuncs = NULL;
+decltype(RunnerJNILib::canFlip)                  RunnerJNILib::canFlip = NULL;
+decltype(RunnerJNILib::GCMPushResult)            RunnerJNILib::GCMPushResult = NULL;
 
 #define NATIVE_METHOD(so, sym) {&CLASS::clazz, MANGLED_CLASSPATH #sym, so, (void**)&CLASS::sym}
-const NativeMethod RunnerJNILibClassNativeMethods[] = {
+const NativeMethod RunnerJNILibNativeMethods[] = {
     NATIVE_METHOD("libyoyo.so", Startup),
     NATIVE_METHOD("libyoyo.so", CreateVersionDSMap),
     NATIVE_METHOD("libyoyo.so", Process),
@@ -58,10 +58,10 @@ const NativeMethod RunnerJNILibClassNativeMethods[] = {
     Static Class Members
 */
 
-double RunnerJNILibClass::mGameSpeedControl = 60.0;
+double RunnerJNILib::mGameSpeedControl = 60.0;
 
-const FieldId RunnerJNILibClassFields[] = {
-    REGISTER_STATIC_FIELD(RunnerJNILibClass, mGameSpeedControl),
+const FieldId RunnerJNILibFields[] = {
+    REGISTER_STATIC_FIELD(RunnerJNILib, mGameSpeedControl),
     {NULL},
 };
 
@@ -69,19 +69,19 @@ const FieldId RunnerJNILibClassFields[] = {
     Managed Class Methods
 */
 
-static jfloatArray GamepadAxesValues(JNIEnv *env, jclass clz, void *ins, jint deviceIndex, jstring test)
+jfloatArray RunnerJNILib::GamepadAxesValues(JNIEnv *env, jclass clz, void *ins, jint deviceIndex, jstring test)
 {
     return 0;
 }
 
 extern int RunnerJNILib_MoveTaskToBackCalled;
-static void MoveTaskToBack(JNIEnv *env, jclass clz)
+void RunnerJNILib::MoveTaskToBack(JNIEnv *env, jclass clz)
 {
     RunnerJNILib_MoveTaskToBackCalled = 1;
     warning("MoveTaskToBack called.\n");
 }
 
-static int OsGetInfo(JNIEnv *env, jclass clz)
+int RunnerJNILib::OsGetInfo(JNIEnv *env, jclass clz)
 {
     static String osinfo_arr[] = {
         /* "RELEASE", */       String("v1.0"),
@@ -97,27 +97,27 @@ static int OsGetInfo(JNIEnv *env, jclass clz)
         /* "VERSION_NAME", */  String("v1.0"),
     };
 
-    int osinfo = RunnerJNILibClass::CreateVersionDSMap(env, NULL, 0x13,
+    int osinfo = RunnerJNILib::CreateVersionDSMap(env, NULL, 0x13,
         &osinfo_arr[0], &osinfo_arr[1], &osinfo_arr[2], &osinfo_arr[3], &osinfo_arr[4], &osinfo_arr[5],
         &osinfo_arr[6], &osinfo_arr[7], &osinfo_arr[8], &osinfo_arr[9], &osinfo_arr[10], (jboolean)1);
     warning(" -- Retuning OsInfo %d. --\n", osinfo);
     return osinfo;
 }
 
-const ManagedMethod RunnerJNILibClassManagedMethods[] = {
-    REGISTER_STATIC_METHOD(RunnerJNILibClass, OsGetInfo, "()I"),
-    REGISTER_STATIC_METHOD(RunnerJNILibClass, GamepadAxesValues, "(I)[F"),
-    REGISTER_STATIC_METHOD(RunnerJNILibClass, MoveTaskToBack, "()V"),
+const ManagedMethod RunnerJNILibManagedMethods[] = {
+    REGISTER_STATIC_METHOD(RunnerJNILib, OsGetInfo, "()I"),
+    REGISTER_STATIC_METHOD(RunnerJNILib, GamepadAxesValues, "(I)[F"),
+    REGISTER_STATIC_METHOD(RunnerJNILib, MoveTaskToBack, "()V"),
     NULL
 };
 
-Class RunnerJNILibClass::clazz = {
+Class RunnerJNILib::clazz = {
     .classpath = "com/yoyogames/runner/RunnerJNILib",
     .classname = "RunnerJNILib",
-    .managed_methods = RunnerJNILibClassManagedMethods,
-    .native_methods = RunnerJNILibClassNativeMethods,
-    .fields = RunnerJNILibClassFields,
+    .managed_methods = RunnerJNILibManagedMethods,
+    .native_methods = RunnerJNILibNativeMethods,
+    .fields = RunnerJNILibFields,
     .instance_size = sizeof(String)
 };
 
-static const int registered = ClassRegistry::register_class(RunnerJNILibClass::clazz);
+static const int registered = ClassRegistry::register_class(RunnerJNILib::clazz);

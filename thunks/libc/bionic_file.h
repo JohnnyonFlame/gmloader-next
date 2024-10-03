@@ -5,6 +5,8 @@
 #include <cstddef>
 #include <cstdio>
 
+typedef off_t BIONIC_fpos_t;
+
 /* "struct dirent" from bionic/libc/include/dirent.h */
 struct bionic_dirent {
     uint64_t         d_ino;
@@ -45,7 +47,7 @@ typedef	struct BIONIC__sFILE {
 	void	*_cookie;	/* cookie passed to io functions */
 	int	(*_close)(void *);
 	int	(*_read)(void *, char *, int);
-	fpos_t	(*_seek)(void *, fpos_t, int);
+	BIONIC_fpos_t	(*_seek)(void *, BIONIC_fpos_t, int);
 	int	(*_write)(void *, const char *, int);
 	/* extension data, to avoid further ABI breakage */
 	struct	BIONIC__sbuf _ext;
@@ -59,7 +61,7 @@ typedef	struct BIONIC__sFILE {
 	struct	BIONIC__sbuf _lb;	/* buffer for fgetln() */
 	/* Unix stdio files get aligned to block boundaries on fseek() */
 	int	_blksize;	/* stat.st_blksize (may be != _bf._size) */
-	fpos_t	_offset;	/* current lseek offset */
+	BIONIC_fpos_t	_offset;	/* current lseek offset */
 } BIONIC_FILE;
 
 #endif
