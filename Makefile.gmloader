@@ -16,7 +16,7 @@ LIBS=\
 
 # General compilation flags
 OPTM?=-Os
-COMMONFLAGS=-Wno-strict-aliasing -Werror=return-type -I. -I./thunks/ -I./loader/ -I./gmloader/ -I./build/${ARCH}/thunks/libc -I./jni/ ${OPTM} -MMD
+COMMONFLAGS=-Wno-strict-aliasing -Werror=return-type -I. -I./thunks/ -I./loader/ -I./gmloader/ -I./build/${ARCH}/thunks/libc -I./jni/ -I./3rdparty/json/include ${OPTM} -MMD
 CFLAGS=$(shell ${PKG_CONFIG} sdl2 --cflags) ${COMMONFLAGS}
 CXXFLAGS=-std=gnu++2a -fuse-cxa-atexit $(shell ${PKG_CONFIG} sdl2 --cflags) ${COMMONFLAGS}
 LDFLAGS=-L3rdparty/libbsd/src/.libs ${OPTM}

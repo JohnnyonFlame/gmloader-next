@@ -12,12 +12,18 @@
 #include "classes/RunnerJNILib.h"
 #include "khronos/gles2.h"
 #include "libyoyo.h"
+#include "configuration.h"
+
+
+#define CONFIG_FILE     "config.json"
 
 namespace fs = std::filesystem;
 
 extern DynLibFunction symtable_libc[];
 extern DynLibFunction symtable_zlib[];
 extern DynLibFunction symtable_gles2[];
+
+extern gmloader::config gmloader_config;
 
 DynLibFunction *so_static_patches[32] = {
     NULL,
@@ -77,11 +83,22 @@ int RunnerJNILib_MoveTaskToBackCalled = 0;
 
 int main(int argc, char *argv[])
 {
-    fs::path work_dir, apk_path;
-    work_dir = fs::current_path();
-    work_dir = fs::canonical(fs::current_path()) / "";
-    apk_path = work_dir / "game.apk";
 
+    fs::path work_dir, config_file_path, save_dir, apk_path;
+    work_dir = fs::canonical(fs::current_path()) / "";
+    config_file_path = work_dir / CONFIG_FILE;
+
+    if( read_config_file(config_file_path.c_str()) < 0 ){
+        warning("Error while loading the config file\n");
+    }
+
+    save_dir = get_absolute_path(gmloader_config.save_dir.c_str(), work_dir) / "";
+    apk_path = get_absolute_path(gmloader_config.apk_path.c_str(), work_dir);
+
+    printf("work_dir=%s\n",work_dir.c_str());
+    printf("save_dir=%s\n",save_dir.c_str());
+    printf("apk_path=%s\n",apk_path.c_str());
+    
     int err;
     zip_t *apk = zip_open(apk_path.c_str(), ZIP_RDONLY, &err);
     if (apk == NULL) {
@@ -130,7 +147,7 @@ int main(int argc, char *argv[])
     patch_mouse(&libyoyo);
 
     String *apk_path_arg = (String *)env->NewStringUTF(apk_path.c_str());
-    String *save_dir_arg = (String *)env->NewStringUTF(work_dir.c_str());
+    String *save_dir_arg = (String *)env->NewStringUTF(save_dir.c_str());
     String *pkg_dir_arg = (String *)env->NewStringUTF("com.johnny.loader");
     printf("apk_path %s save_dir %s pkg_dir %s\n", apk_path_arg->str, save_dir_arg->str, pkg_dir_arg->str);
 
@@ -138,6 +155,14 @@ int main(int argc, char *argv[])
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER) != 0) {
         fatal_error("SDL could not initialize! SDL_Error: %s\n", SDL_GetError());
         return -1;
+    }
+
+    if(gmloader_config.show_cursor == 0) {
+        if (SDL_ShowCursor(SDL_DISABLE) < 0) {
+            warning("Cannot disable cursor: %s\n", SDL_GetError());
+        }else{
+            printf("Cursor disabled\n");
+        }
     }
 
     SDL_Window *sdl_win;
