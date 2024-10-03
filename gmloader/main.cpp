@@ -78,19 +78,22 @@ int RunnerJNILib_MoveTaskToBackCalled = 0;
 
 int main(int argc, char *argv[])
 {
-    printf("Loading config file (%s)\n", CONFIG_FILE);
-    
-    if( read_config_file(CONFIG_FILE) < 0 ){
+
+    fs::path work_dir, config_file_path, save_dir, apk_path;
+    work_dir = fs::canonical(fs::current_path()) / "";
+    config_file_path = work_dir / CONFIG_FILE;
+
+    if( read_config_file(config_file_path.c_str()) < 0 ){
         warning("Error while loading the config file\n");
     }
 
-    show_config();
+    save_dir = get_absolute_path(gmloader_config.save_dir.c_str(), work_dir) / "";
+    apk_path = get_absolute_path(gmloader_config.apk_path.c_str(), work_dir);
 
-    fs::path work_dir, save_dir, apk_path;
-    work_dir = fs::canonical(fs::current_path()) / "";
-    save_dir = work_dir / gmloader_config.save_dir.c_str() / "";
-    apk_path = work_dir / gmloader_config.apk_path.c_str();
-
+    printf("work_dir=%s\n",work_dir.c_str());
+    printf("save_dir=%s\n",save_dir.c_str());
+    printf("apk_path=%s\n",apk_path.c_str());
+    
     int err;
     zip_t *apk = zip_open(apk_path.c_str(), ZIP_RDONLY, &err);
     if (apk == NULL) {
