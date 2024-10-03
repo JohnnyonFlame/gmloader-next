@@ -111,7 +111,7 @@ extern "C" ABI_ATTR int __android_log_print_impl(int prio, const char *tag, cons
     va_start(va, fmt);
     warning("LOG[%s]: ", tag);
     int r = vsnprintf(andlog, 2047, fmt, va);
-    warning("%s", andlog);
+    warning("%s\n", andlog);
     va_end(va);
     return r;
 }
@@ -121,7 +121,7 @@ extern "C" ABI_ATTR int __android_log_vprint_impl(int prio, const char *tag, con
     char andlog[2048] = {};
     warning("LOG[%s]: ", tag);
     int r = vsnprintf(andlog, 2047, fmt, va);
-    warning("%s", andlog);
+    warning("%s\n", andlog);
     return r;
 }
 
