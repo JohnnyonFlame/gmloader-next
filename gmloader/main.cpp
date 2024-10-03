@@ -18,10 +18,8 @@ namespace fs = std::filesystem;
 extern DynLibFunction symtable_libc[];
 extern DynLibFunction symtable_zlib[];
 extern DynLibFunction symtable_gles2[];
-extern DynLibFunction symtable_openal[];
 
 DynLibFunction *so_static_patches[32] = {
-    symtable_openal,
     NULL,
 };
 
@@ -29,7 +27,6 @@ DynLibFunction *so_dynamic_libraries[32] = {
     symtable_libc,
     symtable_zlib,
     symtable_gles2,
-    symtable_openal,
     NULL
 };
 
@@ -73,6 +70,7 @@ load_module_success:
 so_module libm = {};
 so_module libcrt = {};
 so_module stdcpp = {};
+so_module openal = {};
 so_module libyoyo = {};
 
 int RunnerJNILib_MoveTaskToBackCalled = 0;
@@ -106,12 +104,14 @@ int main(int argc, char *argv[])
     uintptr_t addr_libm = 0x10000000;
     uintptr_t addr_libcrt = 0x14000000;
     uintptr_t addr_stdcpp = 0x18000000;
+    uintptr_t addr_openal = 0x1C000000;
     uintptr_t addr_yoyo = 0x40000000;
 #else
     // Release mode should allocate in any way the system deems suitable
     uintptr_t addr_libm = 0;
     uintptr_t addr_libcrt = 0;
     uintptr_t addr_stdcxx = 0;
+    uintptr_t addr_openal = 0;
     uintptr_t addr_yoyo = 0;
 #endif
 
@@ -121,6 +121,7 @@ int main(int argc, char *argv[])
     if (!load_module("libm.so", apk, libm, addr_libm, vm)) return -1;
     if (!load_module("libcompiler_rt.so", apk, libcrt, addr_libcrt, vm)) return -1;
     if (!load_module("libc++_shared.so", apk, stdcpp, addr_stdcpp, vm)) return -1;
+    load_module("libopenal.so", apk, openal, addr_openal, vm); /* Some APKs have external libopenal.so */
     if (!load_module("libyoyo.so", apk, libyoyo, addr_yoyo, vm)) return -1;
 
     patch_libyoyo(&libyoyo);
