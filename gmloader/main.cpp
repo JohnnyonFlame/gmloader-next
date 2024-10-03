@@ -88,7 +88,7 @@ int main(int argc, char *argv[])
 
     fs::path work_dir, save_dir, apk_path;
     work_dir = fs::canonical(fs::current_path()) / "";
-    save_dir = work_dir / gmloader_config.save_dir.c_str();
+    save_dir = work_dir / gmloader_config.save_dir.c_str() / "";
     apk_path = work_dir / gmloader_config.apk_path.c_str();
 
     int err;
