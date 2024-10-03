@@ -10,7 +10,6 @@ LIBS=\
 	-lm \
 	-lrt \
 	$(shell ${PKG_CONFIG} sdl2 --libs) \
-	$(shell ${PKG_CONFIG} openal --libs) \
 	$(shell ${PKG_CONFIG} zlib --libs) \
 	$(shell ${PKG_CONFIG} libzip --libs)
 
