@@ -34,6 +34,18 @@ The android libraries can be debugged with `gdb` using a breakpoint trick - chec
 
 For this to be possible, you must extract the libraries from the APK into the application's library folder following the same structure as you would on the APK.
 
+### Config file
+-----
+`config.json` can be used to configure some parameters. Here is an exemple:
+
+```json
+{
+    "save_dir" : "gamedata",
+    "apk_path" : "my_game.apk",
+    "show_cursor": false
+}
+```
+
 ### License:
 -----
 This is free software. The source files in this repository are released under the [GPLv2 License](LICENSE.md), see the license file for more information.
