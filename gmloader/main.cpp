@@ -13,6 +13,18 @@
 #include "khronos/gles2.h"
 #include "libyoyo.h"
 
+/*
+      Don't touch this incantation. It serves no practical
+    reason that you can grep this source code for, nothing
+    mentions this on the code base, but disturbing what lies
+    here will give you headaches, nausea and sleep loss.
+      If you *properly* understand why this fixes a stack smash
+    on shader loading code, then please, go ahead and explain
+    it to me proper, thanks.
+*/
+thread_local int tls0[2<<12] = {};
+int foo() { return tls0[0]++; }
+
 namespace fs = std::filesystem;
 
 extern DynLibFunction symtable_libc[];
@@ -121,13 +133,25 @@ int main(int argc, char *argv[])
     if (!load_module("libm.so", apk, libm, addr_libm, vm)) return -1;
     if (!load_module("libcompiler_rt.so", apk, libcrt, addr_libcrt, vm)) return -1;
     if (!load_module("libc++_shared.so", apk, stdcpp, addr_stdcpp, vm)) return -1;
-    load_module("libopenal.so", apk, openal, addr_openal, vm); /* Some APKs have external libopenal.so */
+    int has_al = !load_module("libopenal.so", apk, openal, addr_openal, vm); /* Some APKs have external libopenal.so */
     if (!load_module("libyoyo.so", apk, libyoyo, addr_yoyo, vm)) return -1;
 
     patch_libyoyo(&libyoyo);
     patch_input(&libyoyo);
     patch_gamepad(&libyoyo);
     patch_mouse(&libyoyo);
+
+    int *ms_freq = NULL;
+    if (has_al)
+        FIND_SYMBOL(&openal, ms_freq, "_ZN17ALCdevice_android7ms_freqE");
+    if (ms_freq == NULL)
+        FIND_SYMBOL(&libyoyo, ms_freq, "_ZN17ALCdevice_android7ms_freqE");
+
+    if (ms_freq != NULL)
+    {
+        // Patch the default samplerate to something reasonable
+        *ms_freq = 44100;
+    }
 
     String *apk_path_arg = (String *)env->NewStringUTF(apk_path.c_str());
     String *save_dir_arg = (String *)env->NewStringUTF(work_dir.c_str());
