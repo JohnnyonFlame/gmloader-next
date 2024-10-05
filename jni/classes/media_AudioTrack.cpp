@@ -33,7 +33,7 @@ AudioTrack::AudioTrack(int streamType, int sampleRateInHz, int channelConfig, in
     desired.freq = sampleRateInHz;
     desired.format = GetSDLFormat(audioFormat);
     desired.channels = (channelConfig == 4) ? 1 : 2;
-    desired.samples = 2048;
+    desired.samples = bufferSizeInBytes / GetSDLFormatBytes(audioFormat);
     desired.callback = NULL;
 
     deviceId = SDL_OpenAudioDevice(NULL, 0, &desired, &obtained, 0);
