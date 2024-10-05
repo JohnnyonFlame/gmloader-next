@@ -26,5 +26,6 @@ public:
     unsigned int needed_bytes;
     SDL_AudioSpec desired, obtained;
     SDL_AudioDeviceID deviceId;
+    int playing;
     int mode;
 };

@@ -32,12 +32,12 @@ AudioTrack::AudioTrack(int streamType, int sampleRateInHz, int channelConfig, in
     desired.freq = sampleRateInHz;
     desired.format = GetSDLFormat(audioFormat);
     desired.channels = (channelConfig == 4) ? 1 : 2;
-    desired.samples = bufferSizeInBytes / GetSDLFormatBytes(audioFormat);
+    desired.samples = bufferSizeInBytes / (desired.channels * GetSDLFormatBytes(audioFormat));
     desired.callback = NULL;
+    playing = 0;
     
     needed_bytes = bufferSizeInBytes;
     deviceId = SDL_OpenAudioDevice(NULL, 0, &desired, &obtained, 0);
-    SDL_PauseAudioDevice(deviceId, 0);
     this->mode = mode;
 }
 
@@ -54,12 +54,14 @@ int AudioTrack::getMinBufferSize(JNIEnv *env, jclass clazz, int sampleRateInHz, 
 void AudioTrack::play(JNIEnv *env, jobject obj, jclass clazz)
 {
     AudioTrack *track = (AudioTrack*)obj;
+    track->playing = 1;
     SDL_PauseAudioDevice(track->deviceId, 0);
 }
 
 void AudioTrack::stop(JNIEnv *env, jobject obj, jclass clazz)
 {
     AudioTrack *track = (AudioTrack*)obj;
+    track->playing = 0;
     SDL_PauseAudioDevice(track->deviceId, 1);
 }
 
@@ -83,8 +85,15 @@ int AudioTrack::write(JNIEnv *env, jobject obj, jclass clazz, jbyteArray audioDa
     uintptr_t where = (uintptr_t)data->elements + offsetInBytes;
 
     int ret = SDL_QueueAudio(track->deviceId, (void*)where, sizeInBytes);
-    if (writeMode == WRITE_BLOCKING)
-        while (SDL_GetQueuedAudioSize(track->deviceId) >= track->needed_bytes * 2);
+
+    if (track->playing == 0)
+        AudioTrack::play(env, obj, clazz);
+
+    if (writeMode == WRITE_BLOCKING) {
+        do {
+            SDL_Delay(0);
+        } while (SDL_GetQueuedAudioSize(track->deviceId));
+    }
 
     if (ret == 0)
         return sizeInBytes;
