@@ -13,6 +13,8 @@ Corrections, fixes, issue reports and optimizations are always welcome.
 ### Building and Deploying [example]:
 -----
 
+`git clone <repository url> --recursive`
+
 - `ARCH`: Specify the architecture, e.g.: `aarch64-linux-gnu`
 - `LLVM_FILE`: Specify the LLVM Clang library file, e.g.: `/usr/lib/llvm-9/lib/libclang-9.so.1` for clang-9.
 - `LLVM_INC`: Specify the path for LLVM includes for your architecture, e.g.: `aarch64-linux-gnu`.
@@ -20,6 +22,17 @@ Corrections, fixes, issue reports and optimizations are always welcome.
 
 ```bash
 make -f Makefile.gmloader ARCH=aarch64-linux-gnu
+```
+
+Or, for a debian bullseye chroot within wsl2:
+
+```bash
+make -f Makefile.gmloader \
+ARCH=aarch64-linux-gnu \
+LLVM_FILE=/usr/lib/llvm-11/lib/libclang-11.so.1 \
+LLVM_INC=/usr/aarch64-linux-gnu/include/c++/10/aarch64-linux-gnu \
+-j$(nproc)
+python3 scripts/generate_libc.py aarch64-linux-gnu --llvm-includes /usr/aarch64-linux-gnu/include/c++/10/aarch64-linux-gnu --llvm-library-file "/usr/lib/llvm-11/lib/libclang-11.so.1"
 ```
 
 In order to deploy, you must copy the `lib` redist folder in the application's folder,

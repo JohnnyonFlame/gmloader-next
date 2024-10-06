@@ -77,10 +77,9 @@ int RunnerJNILib_MoveTaskToBackCalled = 0;
 
 int main(int argc, char *argv[])
 {
-    fs::path work_dir, apk_path;
-    work_dir = fs::current_path();
-    work_dir = fs::canonical(fs::current_path()) / "";
-    apk_path = work_dir / "game.apk";
+    fs::path work_dir = fs::canonical(fs::current_path());
+    fs::path save_dir = work_dir / "gamedata/";
+    fs::path apk_path = work_dir / "game.apk";
 
     int err;
     zip_t *apk = zip_open(apk_path.c_str(), ZIP_RDONLY, &err);
@@ -130,7 +129,7 @@ int main(int argc, char *argv[])
     patch_mouse(&libyoyo);
 
     String *apk_path_arg = (String *)env->NewStringUTF(apk_path.c_str());
-    String *save_dir_arg = (String *)env->NewStringUTF(work_dir.c_str());
+    String *save_dir_arg = (String *)env->NewStringUTF(save_dir.c_str());
     String *pkg_dir_arg = (String *)env->NewStringUTF("com.johnny.loader");
     printf("apk_path %s save_dir %s pkg_dir %s\n", apk_path_arg->str, save_dir_arg->str, pkg_dir_arg->str);
 
