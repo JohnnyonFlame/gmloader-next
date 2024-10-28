@@ -14,6 +14,8 @@ namespace gmloader {
     };
 }
 
+void init_config();
+
 int read_config_file(const char* path);
 
 void show_config();

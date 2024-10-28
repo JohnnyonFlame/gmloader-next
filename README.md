@@ -49,8 +49,9 @@ For this to be possible, you must extract the libraries from the APK into the ap
 
 ### Config file
 -----
-`config.json` can be used to configure some parameters. Here is an exemple:
+gmloadernext can load a json formatted configuration file using the `-c` option. For exemple `gmloadernext -c configuration.gmld`
 
+**configuration.gmld**:
 ```json
 {
     "save_dir" : "gamedata",
@@ -58,6 +59,14 @@ For this to be possible, you must extract the libraries from the APK into the ap
     "show_cursor": false
 }
 ```
+
+When no configuration file is present the default values are:
+
+| Parameter name | Default value |
+|----------------|---------------|
+| save_dir       | ./            |
+| apk_path       | game.apk      |
+| show_cursor    | true          |
 
 ### License:
 -----

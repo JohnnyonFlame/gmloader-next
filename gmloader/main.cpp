@@ -94,13 +94,19 @@ int RunnerJNILib_MoveTaskToBackCalled = 0;
 
 int main(int argc, char *argv[])
 {
+    init_config();
 
     fs::path work_dir, config_file_path, save_dir, apk_path;
     work_dir = fs::canonical(fs::current_path()) / "";
-    config_file_path = work_dir / CONFIG_FILE;
 
-    if( read_config_file(config_file_path.c_str()) < 0 ){
-        warning("Error while loading the config file\n");
+    if (argc > 2 && strcmp(argv[1], "-c") == 0 ){
+        
+        config_file_path = work_dir / argv[2];
+
+        if( read_config_file(config_file_path.c_str()) < 0 ){
+            warning("Error while loading the config file\n");
+        }
+
     }
 
     save_dir = get_absolute_path(gmloader_config.save_dir.c_str(), work_dir) / "";

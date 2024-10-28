@@ -3,6 +3,13 @@
 
 gmloader::config gmloader_config;
 
+void init_config(){
+    // default values
+    gmloader_config.apk_path = "game.apk";
+    gmloader_config.save_dir = "";
+    gmloader_config.show_cursor = true;
+}
+
 int read_config_file(const char* path){
     printf("Loading config file (%s)\n", path);
 
@@ -10,11 +17,6 @@ int read_config_file(const char* path){
     json config_json;
 
     int p_loaded = 0;
-
-    // default values
-    gmloader_config.apk_path = "game.apk";
-    gmloader_config.save_dir = "";
-    gmloader_config.show_cursor = true;
 
     try{
         config_json = json::parse(config_file);
