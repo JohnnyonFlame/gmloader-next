@@ -12,6 +12,7 @@
 #include "classes/RunnerJNILib.h"
 #include "khronos/gles2.h"
 #include "libyoyo.h"
+#include "configuration.h"
 
 /*
       Don't touch this incantation. It serves no practical
@@ -25,11 +26,15 @@
 thread_local int tls0[2<<12] = {};
 int foo() { return tls0[0]++; }
 
+#define CONFIG_FILE     "config.json"
+
 namespace fs = std::filesystem;
 
 extern DynLibFunction symtable_libc[];
 extern DynLibFunction symtable_zlib[];
 extern DynLibFunction symtable_gles2[];
+
+extern gmloader::config gmloader_config;
 
 DynLibFunction *so_static_patches[32] = {
     NULL,
@@ -89,9 +94,23 @@ int RunnerJNILib_MoveTaskToBackCalled = 0;
 
 int main(int argc, char *argv[])
 {
-    fs::path work_dir = fs::canonical(fs::current_path());
-    fs::path save_dir = work_dir / "gamedata/";
-    fs::path apk_path = work_dir / "game.apk";
+    init_config();
+
+    fs::path work_dir, config_file_path, save_dir, apk_path;
+    work_dir = fs::canonical(fs::current_path()) / "";
+
+    if (argc > 2 && strcmp(argv[1], "-c") == 0 ){
+        
+        config_file_path = work_dir / argv[2];
+
+        if( read_config_file(config_file_path.c_str()) < 0 ){
+            warning("Error while loading the config file\n");
+        }
+
+    }
+
+    save_dir = get_absolute_path(gmloader_config.save_dir.c_str(), work_dir) / "";
+    apk_path = get_absolute_path(gmloader_config.apk_path.c_str(), work_dir);
 
     int err;
     zip_t *apk = zip_open(apk_path.c_str(), ZIP_RDONLY, &err);
@@ -161,6 +180,14 @@ int main(int argc, char *argv[])
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER) != 0) {
         fatal_error("SDL could not initialize! SDL_Error: %s\n", SDL_GetError());
         return -1;
+    }
+
+    if(gmloader_config.show_cursor == 0) {
+        if (SDL_ShowCursor(SDL_DISABLE) < 0) {
+            warning("Cannot disable cursor: %s\n", SDL_GetError());
+        }else{
+            printf("Cursor disabled\n");
+        }
     }
 
     SDL_Window *sdl_win;
