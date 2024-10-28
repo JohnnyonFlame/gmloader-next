@@ -23,7 +23,9 @@ public:
     static int write(JNIEnv *env, jobject obj, jclass clazz, jbyteArray audioData, int offsetInBytes, int sizeInBytes);
     static int write(JNIEnv *env, jobject obj, jclass clazz, jbyteArray audioData, int offsetInBytes, int sizeInBytes, int writeMode);
 
+    unsigned int needed_bytes;
     SDL_AudioSpec desired, obtained;
     SDL_AudioDeviceID deviceId;
+    int playing;
     int mode;
 };

@@ -6,6 +6,18 @@
  * of the GPLv3 license. See the LICENSE.md file for details.
  */
 
+// JohnnyonFlame:
+// This is a severely rewritten/reworked version of the so_util.c library built by @TheOfficialFloW
+// for the gtasa_vita project.
+// Notable changes:
+// - Ported from PS-Vita to Linux.
+// - Supports both ARMHF and AARCH64 targets
+// - Supports many more relocation segments - e.g. DT_ANDROID_REL_OFFSET
+//   - Can now load multiple android system libraries for better compatibility, e.g. libm, libc++, etc.
+// - Single-word hooks using trampoline code generation for longer jump targets
+//   - Allows for safely hooking functions that have been stubbed by compile targets, such as enabling debugging output messages.
+// - PLT0 stub hook for easier debugging when the application crashes with a missing import
+
 #define __USE_MISC
 #include <stdio.h>
 #include <stdlib.h>

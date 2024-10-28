@@ -1,3 +1,5 @@
+#ifdef USE_OPENAL_THUNKS
+
 #include <errno.h>
 #include <stdlib.h>
 #define AL_ALEXT_PROTOTYPES
@@ -130,3 +132,5 @@ DynLibFunction symtable_openal[] = {
     THUNK_DIRECT(alcGetContextsDevice),
     NULL
 };
+
+#endif

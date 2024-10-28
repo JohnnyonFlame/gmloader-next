@@ -27,17 +27,17 @@ static int GetSDLFormatBytes(int audioFormat)
 }
 
 AudioTrack::AudioTrack(int streamType, int sampleRateInHz, int channelConfig, int audioFormat, int bufferSizeInBytes, int mode)
-{
-    
+{    
     SDL_zero(desired);
     desired.freq = sampleRateInHz;
     desired.format = GetSDLFormat(audioFormat);
     desired.channels = (channelConfig == 4) ? 1 : 2;
-    desired.samples = bufferSizeInBytes / GetSDLFormatBytes(audioFormat);
+    desired.samples = bufferSizeInBytes / (desired.channels * GetSDLFormatBytes(audioFormat));
     desired.callback = NULL;
-
+    playing = 0;
+    
+    needed_bytes = bufferSizeInBytes;
     deviceId = SDL_OpenAudioDevice(NULL, 0, &desired, &obtained, 0);
-    SDL_PauseAudioDevice(deviceId, 0);
     this->mode = mode;
 }
 
@@ -48,18 +48,20 @@ static void AudioClass_ctor1(JNIEnv *env, jobject obj, jclass clazz, int streamT
 
 int AudioTrack::getMinBufferSize(JNIEnv *env, jclass clazz, int sampleRateInHz, int channelConfig, int audioFormat)
 {
-    return 2048;
+    return 2048 * GetSDLFormatBytes(audioFormat);
 }
 
 void AudioTrack::play(JNIEnv *env, jobject obj, jclass clazz)
 {
     AudioTrack *track = (AudioTrack*)obj;
+    track->playing = 1;
     SDL_PauseAudioDevice(track->deviceId, 0);
 }
 
 void AudioTrack::stop(JNIEnv *env, jobject obj, jclass clazz)
 {
     AudioTrack *track = (AudioTrack*)obj;
+    track->playing = 0;
     SDL_PauseAudioDevice(track->deviceId, 1);
 }
 
@@ -82,10 +84,17 @@ int AudioTrack::write(JNIEnv *env, jobject obj, jclass clazz, jbyteArray audioDa
     ArrayObject *data = (ArrayObject*)audioData;
     uintptr_t where = (uintptr_t)data->elements + offsetInBytes;
 
-    if (writeMode == WRITE_BLOCKING)
-        while (SDL_GetQueuedAudioSize(track->deviceId) > 2048 * 4);
-
     int ret = SDL_QueueAudio(track->deviceId, (void*)where, sizeInBytes);
+
+    if (track->playing == 0)
+        AudioTrack::play(env, obj, clazz);
+
+    if (writeMode == WRITE_BLOCKING) {
+        do {
+            SDL_Delay(0);
+        } while (SDL_GetQueuedAudioSize(track->deviceId));
+    }
+
     if (ret == 0)
         return sizeInBytes;
     else
