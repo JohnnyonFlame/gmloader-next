@@ -72,6 +72,18 @@ When no configuration file is present the default values are:
 | disable_controller | false         |
 | force_platform     | os_android    |
 
+Supported values for force_platform are:
+- os_unknown
+- os_windows
+- os_macosx
+- os_ios
+- os_android
+- os_linux
+- os_psvita
+- os_ps4
+- os_xboxone
+- os_tvos
+- os_switch
 
 ### License:
 -----
