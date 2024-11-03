@@ -6,6 +6,7 @@
 #include "platform.h"
 #include "so_util.h"
 #include "libyoyo.h"
+#include "configuration.h"
 
 int app_in_focus = 0;
 int mouse_has_warped = 0;
@@ -26,6 +27,8 @@ static controller_t sdl_controllers[8] = {
     {.controller = NULL, .which = -1, .slot = -1},
     {.controller = NULL, .which = -1, .slot = -1}
 };
+
+extern gmloader::config gmloader_config;
 
 static int get_free_controller_slot()
 {
@@ -228,6 +231,11 @@ int update_inputs(SDL_Window *win)
     while (SDL_PollEvent(&ev)) {
         switch (ev.type) {
         case SDL_CONTROLLERDEVICEADDED:
+            if(gmloader_config.disable_controller == 1){
+                printf("Controller %d ignored (disable_controller = True)\n", ev.cdevice.which);
+                break;
+            }
+
             // For this event, ev.cdevice.which refers to the Active device index.
             if (SDL_IsGameController(ev.cdevice.which)) {
                 int slot = get_free_controller_slot();

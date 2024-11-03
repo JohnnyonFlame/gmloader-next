@@ -35,6 +35,7 @@ extern DynLibFunction symtable_zlib[];
 extern DynLibFunction symtable_gles2[];
 
 extern gmloader::config gmloader_config;
+extern double FORCE_PLATFORM;
 
 DynLibFunction *so_static_patches[32] = {
     NULL,
@@ -107,6 +108,20 @@ int main(int argc, char *argv[])
             warning("Error while loading the config file\n");
         }
 
+    }
+
+    if(strcmp(gmloader_config.force_platform.c_str(), "os_android") == 0){
+        FORCE_PLATFORM = os_android;
+        printf("os_type = os_android\n");
+    }else if(strcmp(gmloader_config.force_platform.c_str(), "os_linux") == 0){
+        FORCE_PLATFORM = os_linux;
+        printf("os_type = os_linux\n");
+    }else if(strcmp(gmloader_config.force_platform.c_str(), "os_windows") == 0){
+        FORCE_PLATFORM = os_windows;
+        printf("os_type = os_windows\n");
+    }else if(strcmp(gmloader_config.force_platform.c_str(), "os_psvita") == 0){
+        FORCE_PLATFORM = os_psvita;
+        printf("os_type = os_psvita\n");
     }
 
     save_dir = get_absolute_path(gmloader_config.save_dir.c_str(), work_dir) / "";

@@ -87,6 +87,8 @@ static const char *fake_functs[] = {
     "psn_user_for_pad"
 };
 
+double FORCE_PLATFORM;
+
 ABI_ATTR int _dbg_csol_print(void *csol, const char *fmt, ...) {
     char csol_str[2048];
     va_list list;
@@ -119,7 +121,6 @@ ABI_ATTR static void game_end_reimpl(RValue *ret, void *self, void *other, int a
     *New_Room = 0xffffff9c;
 }
 
-double FORCE_PLATFORM = os_android;
 ABI_ATTR static double force_platform_type()
 {
     return FORCE_PLATFORM;
