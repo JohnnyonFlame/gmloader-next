@@ -5,6 +5,16 @@ CXX := ${CROSS}g++
 LD := ${CROSS}ld
 PKG_CONFIG := ${CROSS}pkg-config
 
+BUILD_DATE = $(shell date +"%Y%m%d_%H%M%S")
+GIT_HASH = $(shell git rev-parse HEAD)
+GIT_BRANCH = $(shell git branch --show-current)
+
+DEVICE_ARCH = aarch64
+
+ifeq ($(ARCH), armhf-linux-gnu)
+	DEVICE_ARCH = armhf
+endif
+
 LIBS=\
 	-pthread \
 	-lm \
@@ -18,7 +28,7 @@ OPTM?=-Os
 COMMONFLAGS=-Wno-strict-aliasing -Werror=return-type -I. -I./thunks/ -I./loader/ -I./gmloader/ -I./build/${ARCH}/thunks/libc -I./jni/ -I./3rdparty/json/include ${OPTM} -MMD
 CFLAGS=$(shell ${PKG_CONFIG} sdl2 --cflags) ${COMMONFLAGS}
 CXXFLAGS=-std=gnu++2a -fuse-cxa-atexit $(shell ${PKG_CONFIG} sdl2 --cflags) ${COMMONFLAGS}
-LDFLAGS=-L3rdparty/libbsd/src/.libs ${OPTM}
+LDFLAGS=-L3rdparty/libbsd/src/.libs ${OPTM} -Wl,--defsym,BUILD_DATE_$(BUILD_DATE)=0 -Wl,--defsym,GIT_HASH_$(GIT_HASH)=0 -Wl,--defsym,GIT_BRANCH_$(GIT_BRANCH)=0
 
 # General pre-processing flags
 LLVM_FILE?=
@@ -50,7 +60,7 @@ GENERIC_OBJ:=\
 
 OBJ=$(patsubst build/%,build/${ARCH}/%,${GENERIC_OBJ})
 
-all: build/${ARCH}/gmloader/gmloader
+all: build/${ARCH}/gmloader/gmloadernext.${DEVICE_ARCH}
 
 clean:
 	rm -rf build/${ARCH}
@@ -60,7 +70,7 @@ clean:
 
 # By repeating the generated headers on this rule, we force them to start building
 # as soon as possible, so libc_table.cpp isn't waiting forever.
-build/${ARCH}/gmloader/gmloader: ${LIBC_TABS} $(BSD_OBJ) $(OBJ)
+build/${ARCH}/gmloader/gmloadernext.${DEVICE_ARCH}: ${LIBC_TABS} $(BSD_OBJ) $(OBJ)
 	$(CXX) $(LDFLAGS) -o $@ $(OBJ) $(BSD_OBJ) $(LIBS)
 
 build/${ARCH}/%.cpp.o: %.cpp
