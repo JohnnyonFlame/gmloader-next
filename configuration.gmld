@@ -1,5 +1,7 @@
 {
     "save_dir" : "gamedata",
     "apk_path" : "my_game.apk",
-    "show_cursor": true
+    "show_cursor" : false,
+    "disable_controller" : false,
+    "force_platform" : "os_windows"
 }

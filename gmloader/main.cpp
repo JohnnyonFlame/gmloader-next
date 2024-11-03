@@ -110,18 +110,43 @@ int main(int argc, char *argv[])
 
     }
 
-    if(strcmp(gmloader_config.force_platform.c_str(), "os_android") == 0){
-        FORCE_PLATFORM = os_android;
-        printf("os_type = os_android\n");
-    }else if(strcmp(gmloader_config.force_platform.c_str(), "os_linux") == 0){
-        FORCE_PLATFORM = os_linux;
-        printf("os_type = os_linux\n");
-    }else if(strcmp(gmloader_config.force_platform.c_str(), "os_windows") == 0){
-        FORCE_PLATFORM = os_windows;
-        printf("os_type = os_windows\n");
-    }else if(strcmp(gmloader_config.force_platform.c_str(), "os_psvita") == 0){
-        FORCE_PLATFORM = os_psvita;
-        printf("os_type = os_psvita\n");
+    char platform_ov[32];
+    strncpy(platform_ov,gmloader_config.force_platform.c_str(),sizeof(platform_ov)-1);
+    platform_ov[31] = '\0';
+    
+    if (platform_ov) {
+        for (int i = 0; platform_ov[i] != '\0'; i++)
+            platform_ov[i] = tolower(platform_ov[i]);
+
+        if(strcmp(platform_ov, "os_unknown") == 0){
+            FORCE_PLATFORM = os_unknown;
+        }else if(strcmp(platform_ov, "os_windows") == 0){
+            FORCE_PLATFORM = os_windows;
+        }else if(strcmp(platform_ov, "os_macosx") == 0){
+            FORCE_PLATFORM = os_macosx;
+        }else if(strcmp(platform_ov, "os_ios") == 0){
+            FORCE_PLATFORM = os_ios;
+        }else if(strcmp(platform_ov, "os_android") == 0){
+            FORCE_PLATFORM = os_android;
+        }else if(strcmp(platform_ov, "os_linux") == 0){
+            FORCE_PLATFORM = os_linux;
+        }else if(strcmp(platform_ov, "os_psvita") == 0){
+            FORCE_PLATFORM = os_psvita;
+        }else if(strcmp(platform_ov, "os_ps4") == 0){
+            FORCE_PLATFORM = os_ps4;
+        }else if(strcmp(platform_ov, "os_xboxone") == 0){
+            FORCE_PLATFORM = os_xboxone;
+        }else if(strcmp(platform_ov, "os_tvos") == 0){
+            FORCE_PLATFORM = os_tvos;
+        }else if(strcmp(platform_ov, "os_switch") == 0){
+            FORCE_PLATFORM = os_switch;
+        }else{
+            fatal_error("Unexpected platform '%s'.\n", platform_ov);
+            strcpy(platform_ov,"os_unknown");
+        }
+
+        printf("os_type = %s\n", platform_ov);
+
     }
 
     save_dir = get_absolute_path(gmloader_config.save_dir.c_str(), work_dir) / "";

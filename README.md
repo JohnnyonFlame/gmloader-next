@@ -56,17 +56,22 @@ gmloadernext can load a json formatted configuration file using the `-c` option.
 {
     "save_dir" : "gamedata",
     "apk_path" : "my_game.apk",
-    "show_cursor": false
+    "show_cursor" : false,
+    "disable_controller" : false,
+    "force_platform" : "os_windows"
 }
 ```
 
 When no configuration file is present the default values are:
 
-| Parameter name | Default value |
-|----------------|---------------|
-| save_dir       | ./            |
-| apk_path       | game.apk      |
-| show_cursor    | true          |
+| Parameter name     | Default value |
+|--------------------|---------------|
+| save_dir           | ./            |
+| apk_path           | game.apk      |
+| show_cursor        | true          |
+| disable_controller | false         |
+| force_platform     | os_android    |
+
 
 ### License:
 -----

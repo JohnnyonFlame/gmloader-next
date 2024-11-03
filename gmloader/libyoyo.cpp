@@ -87,7 +87,7 @@ static const char *fake_functs[] = {
     "psn_user_for_pad"
 };
 
-double FORCE_PLATFORM;
+double FORCE_PLATFORM = os_android;
 
 ABI_ATTR int _dbg_csol_print(void *csol, const char *fmt, ...) {
     char csol_str[2048];
