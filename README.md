@@ -15,7 +15,7 @@ Corrections, fixes, issue reports and optimizations are always welcome.
 
 `git clone <repository url> --recursive`
 
-- `ARCH`: Specify the architecture, e.g.: `aarch64-linux-gnu`
+- `ARCH`: Specify the architecture, e.g.: `aarch64-linux-gnu` or `arm-linux-gnueabihf`
 - `LLVM_FILE`: Specify the LLVM Clang library file, e.g.: `/usr/lib/llvm-9/lib/libclang-9.so.1` for clang-9.
 - `LLVM_INC`: Specify the path for LLVM includes for your architecture, e.g.: `aarch64-linux-gnu`.
 - `OPTM`: Specify the optimization flags, e.g.: `-O3`, `-Os` or `-Og -ggdb`.

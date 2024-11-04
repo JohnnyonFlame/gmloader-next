@@ -11,7 +11,7 @@ GIT_BRANCH = $(shell git branch --show-current)
 
 DEVICE_ARCH = aarch64
 
-ifeq ($(ARCH), armhf-linux-gnu)
+ifeq ($(ARCH), arm-linux-gnueabihf)
 	DEVICE_ARCH = armhf
 endif
 
