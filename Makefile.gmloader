@@ -60,7 +60,7 @@ GENERIC_OBJ:=\
 
 OBJ=$(patsubst build/%,build/${ARCH}/%,${GENERIC_OBJ})
 
-all: build/${ARCH}/gmloader/gmloadernext.${DEVICE_ARCH}
+all: build/${ARCH}/gmloader/gmloader.${DEVICE_ARCH}
 
 clean:
 	rm -rf build/${ARCH}
@@ -70,7 +70,7 @@ clean:
 
 # By repeating the generated headers on this rule, we force them to start building
 # as soon as possible, so libc_table.cpp isn't waiting forever.
-build/${ARCH}/gmloader/gmloadernext.${DEVICE_ARCH}: ${LIBC_TABS} $(BSD_OBJ) $(OBJ)
+build/${ARCH}/gmloader/gmloader.${DEVICE_ARCH}: ${LIBC_TABS} $(BSD_OBJ) $(OBJ)
 	$(CXX) $(LDFLAGS) -o $@ $(OBJ) $(BSD_OBJ) $(LIBS)
 
 build/${ARCH}/%.cpp.o: %.cpp

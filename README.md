@@ -49,9 +49,9 @@ For this to be possible, you must extract the libraries from the APK into the ap
 
 ### Config file
 -----
-gmloadernext can load a json formatted configuration file using the `-c` option. For exemple `gmloadernext -c configuration.gmld`
+gmloadernext can load a json formatted configuration file using the `-c` option. For exemple `./gmloader.aarch64 -c gmloader.conf`
 
-**configuration.gmld**:
+**gmloader.conf**:
 ```json
 {
     "save_dir" : "gamedata",

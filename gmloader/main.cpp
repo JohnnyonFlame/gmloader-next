@@ -111,8 +111,7 @@ int main(int argc, char *argv[])
     }
 
     char platform_ov[32];
-    strncpy(platform_ov,gmloader_config.force_platform.c_str(),sizeof(platform_ov)-1);
-    platform_ov[31] = '\0';
+    strncpy(platform_ov,gmloader_config.force_platform.c_str(),sizeof(platform_ov));
     
     if (platform_ov) {
         for (int i = 0; platform_ov[i] != '\0'; i++)
@@ -141,8 +140,9 @@ int main(int argc, char *argv[])
         }else if(strcmp(platform_ov, "os_switch") == 0){
             FORCE_PLATFORM = os_switch;
         }else{
-            fatal_error("Unexpected platform '%s'.\n", platform_ov);
+            warning("Unexpected platform '%s'.\n", platform_ov);
             strcpy(platform_ov,"os_unknown");
+            FORCE_PLATFORM = os_unknown;
         }
 
         printf("os_type = %s\n", platform_ov);
@@ -208,7 +208,7 @@ int main(int argc, char *argv[])
     if (ms_freq != NULL)
     {
         // Patch the default samplerate to something reasonable
-        *ms_freq = 44100;
+        *ms_freq = 48000;
     }
 
     String *apk_path_arg = (String *)env->NewStringUTF(apk_path.c_str());
