@@ -8,6 +8,8 @@ void init_config(){
     gmloader_config.apk_path = "game.apk";
     gmloader_config.save_dir = "";
     gmloader_config.show_cursor = true;
+    gmloader_config.disable_controller = false;
+    gmloader_config.force_platform = "os_android";
 }
 
 int read_config_file(const char* path){
@@ -55,6 +57,26 @@ int read_config_file(const char* path){
     }
     printf("\tshow_cursor = %d\n",gmloader_config.show_cursor);
 
+    try{
+        config_json.at("disable_controller").get_to(gmloader_config.disable_controller);
+        p_loaded++;
+    }catch (const json::out_of_range& e){
+        // default value
+    }catch (const json::type_error& e){
+        warning("\tdisable_controller type error\n");
+    }
+    printf("\tdisable_controller = %d\n",gmloader_config.disable_controller);
+
+    try{
+        config_json.at("force_platform").get_to(gmloader_config.force_platform);
+        p_loaded++;
+    }catch (const json::out_of_range& e){
+        // default value
+    }catch (const json::type_error& e){
+        warning("\tforce_platform type error\n");
+    }
+    printf("\tforce_platform = %s\n",gmloader_config.force_platform.c_str());
+
     return p_loaded;
 }
 
@@ -62,6 +84,8 @@ void show_config(){
     printf("config: save_dir = %s\n",gmloader_config.save_dir.c_str());
     printf("config: apk_path = %s\n",gmloader_config.apk_path.c_str());
     printf("config: show_cursor = %d\n",gmloader_config.show_cursor);
+    printf("config: disable_controller = %d\n",gmloader_config.disable_controller);
+    printf("config: force_platform = %s\n",gmloader_config.force_platform.c_str());
 }
 
 fs::path get_absolute_path(const char* path, fs::path work_dir){

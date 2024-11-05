@@ -15,7 +15,7 @@ Corrections, fixes, issue reports and optimizations are always welcome.
 
 `git clone <repository url> --recursive`
 
-- `ARCH`: Specify the architecture, e.g.: `aarch64-linux-gnu`
+- `ARCH`: Specify the architecture, e.g.: `aarch64-linux-gnu` or `arm-linux-gnueabihf`
 - `LLVM_FILE`: Specify the LLVM Clang library file, e.g.: `/usr/lib/llvm-9/lib/libclang-9.so.1` for clang-9.
 - `LLVM_INC`: Specify the path for LLVM includes for your architecture, e.g.: `aarch64-linux-gnu`.
 - `OPTM`: Specify the optimization flags, e.g.: `-O3`, `-Os` or `-Og -ggdb`.
@@ -49,24 +49,41 @@ For this to be possible, you must extract the libraries from the APK into the ap
 
 ### Config file
 -----
-gmloadernext can load a json formatted configuration file using the `-c` option. For exemple `gmloadernext -c configuration.gmld`
+gmloadernext can load a json formatted configuration file using the `-c` option. For exemple `./gmloader.aarch64 -c gmloader.conf`
 
-**configuration.gmld**:
+**gmloader.conf**:
 ```json
 {
     "save_dir" : "gamedata",
     "apk_path" : "my_game.apk",
-    "show_cursor": false
+    "show_cursor" : false,
+    "disable_controller" : false,
+    "force_platform" : "os_windows"
 }
 ```
 
 When no configuration file is present the default values are:
 
-| Parameter name | Default value |
-|----------------|---------------|
-| save_dir       | ./            |
-| apk_path       | game.apk      |
-| show_cursor    | true          |
+| Parameter name     | Default value |
+|--------------------|---------------|
+| save_dir           | ./            |
+| apk_path           | game.apk      |
+| show_cursor        | true          |
+| disable_controller | false         |
+| force_platform     | os_android    |
+
+Supported values for force_platform are:
+- os_unknown
+- os_windows
+- os_macosx
+- os_ios
+- os_android
+- os_linux
+- os_psvita
+- os_ps4
+- os_xboxone
+- os_tvos
+- os_switch
 
 ### License:
 -----

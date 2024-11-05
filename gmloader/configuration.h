@@ -11,6 +11,8 @@ namespace gmloader {
         std::string save_dir;
         std::string apk_path;
         bool show_cursor;
+        bool disable_controller;
+        std::string force_platform;
     };
 }
 

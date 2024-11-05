@@ -35,6 +35,7 @@ extern DynLibFunction symtable_zlib[];
 extern DynLibFunction symtable_gles2[];
 
 extern gmloader::config gmloader_config;
+extern double FORCE_PLATFORM;
 
 DynLibFunction *so_static_patches[32] = {
     NULL,
@@ -109,6 +110,45 @@ int main(int argc, char *argv[])
 
     }
 
+    char platform_ov[32];
+    strncpy(platform_ov,gmloader_config.force_platform.c_str(),sizeof(platform_ov));
+    
+    if (platform_ov) {
+        for (int i = 0; platform_ov[i] != '\0'; i++)
+            platform_ov[i] = tolower(platform_ov[i]);
+
+        if(strcmp(platform_ov, "os_unknown") == 0){
+            FORCE_PLATFORM = os_unknown;
+        }else if(strcmp(platform_ov, "os_windows") == 0){
+            FORCE_PLATFORM = os_windows;
+        }else if(strcmp(platform_ov, "os_macosx") == 0){
+            FORCE_PLATFORM = os_macosx;
+        }else if(strcmp(platform_ov, "os_ios") == 0){
+            FORCE_PLATFORM = os_ios;
+        }else if(strcmp(platform_ov, "os_android") == 0){
+            FORCE_PLATFORM = os_android;
+        }else if(strcmp(platform_ov, "os_linux") == 0){
+            FORCE_PLATFORM = os_linux;
+        }else if(strcmp(platform_ov, "os_psvita") == 0){
+            FORCE_PLATFORM = os_psvita;
+        }else if(strcmp(platform_ov, "os_ps4") == 0){
+            FORCE_PLATFORM = os_ps4;
+        }else if(strcmp(platform_ov, "os_xboxone") == 0){
+            FORCE_PLATFORM = os_xboxone;
+        }else if(strcmp(platform_ov, "os_tvos") == 0){
+            FORCE_PLATFORM = os_tvos;
+        }else if(strcmp(platform_ov, "os_switch") == 0){
+            FORCE_PLATFORM = os_switch;
+        }else{
+            warning("Unexpected platform '%s'.\n", platform_ov);
+            strcpy(platform_ov,"os_unknown");
+            FORCE_PLATFORM = os_unknown;
+        }
+
+        printf("os_type = %s\n", platform_ov);
+
+    }
+
     save_dir = get_absolute_path(gmloader_config.save_dir.c_str(), work_dir) / "";
     apk_path = get_absolute_path(gmloader_config.apk_path.c_str(), work_dir);
 
@@ -168,7 +208,7 @@ int main(int argc, char *argv[])
     if (ms_freq != NULL)
     {
         // Patch the default samplerate to something reasonable
-        *ms_freq = 44100;
+        *ms_freq = 48000;
     }
 
     String *apk_path_arg = (String *)env->NewStringUTF(apk_path.c_str());
