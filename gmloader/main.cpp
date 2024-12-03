@@ -195,6 +195,9 @@ int main(int argc, char *argv[])
     if (!load_module("libyoyo.so", apk, libyoyo, addr_yoyo, vm)) return -1;
 
     patch_libyoyo(&libyoyo);
+    if(gmloader_config.disable_depth == 1) {
+        disable_depth();
+    }
     patch_input(&libyoyo);
     patch_gamepad(&libyoyo);
     patch_mouse(&libyoyo);
@@ -208,7 +211,7 @@ int main(int argc, char *argv[])
     if (ms_freq != NULL)
     {
         // Patch the default samplerate to something reasonable
-        *ms_freq = 48000;
+        *ms_freq = 22050;
     }
 
     String *apk_path_arg = (String *)env->NewStringUTF(apk_path.c_str());
@@ -266,6 +269,7 @@ int main(int argc, char *argv[])
 
     int cont = 1;
     int w, h;
+
     RunnerJNILib::Startup(env, 0, apk_path_arg, save_dir_arg, pkg_dir_arg, 4, 0);
     while (cont != 0 && cont != 2 && RunnerJNILib_MoveTaskToBackCalled == 0) {
         if (update_inputs(sdl_win) != 1)

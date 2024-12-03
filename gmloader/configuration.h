@@ -12,6 +12,7 @@ namespace gmloader {
         std::string apk_path;
         bool show_cursor;
         bool disable_controller;
+        bool disable_depth;
         std::string force_platform;
     };
 }

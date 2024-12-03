@@ -9,6 +9,7 @@ void init_config(){
     gmloader_config.save_dir = "";
     gmloader_config.show_cursor = true;
     gmloader_config.disable_controller = false;
+    gmloader_config.disable_depth = false;
     gmloader_config.force_platform = "os_android";
 }
 
@@ -68,6 +69,16 @@ int read_config_file(const char* path){
     printf("\tdisable_controller = %d\n",gmloader_config.disable_controller);
 
     try{
+        config_json.at("disable_depth").get_to(gmloader_config.disable_depth);
+        p_loaded++;
+    }catch (const json::out_of_range& e){
+        // default value
+    }catch (const json::type_error& e){
+        warning("\tdisable_depth type error\n");
+    }
+    printf("\tdisable_depth = %d\n",gmloader_config.disable_depth);
+
+    try{
         config_json.at("force_platform").get_to(gmloader_config.force_platform);
         p_loaded++;
     }catch (const json::out_of_range& e){
@@ -85,6 +96,7 @@ void show_config(){
     printf("config: apk_path = %s\n",gmloader_config.apk_path.c_str());
     printf("config: show_cursor = %d\n",gmloader_config.show_cursor);
     printf("config: disable_controller = %d\n",gmloader_config.disable_controller);
+    printf("config: disable_depth = %d\n",gmloader_config.disable_depth);
     printf("config: force_platform = %s\n",gmloader_config.force_platform.c_str());
 }
 
