@@ -45,5 +45,5 @@ jobs:
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: gmloader_${{ matrix.arch.name }}
-          path: ${{ github.workspace }}/build/${{ matrix.arch.cross }}/gmloader/gmloader.${{ matrix.arch.executable}}
+          name: gmloadernext_${{ matrix.arch.name }}
+          path: ${{ github.workspace }}/build/${{ matrix.arch.cross }}/gmloader/gmloadernext.${{ matrix.arch.executable}}
