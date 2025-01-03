@@ -10,34 +10,46 @@
 #include "so_util.h"
 #include "gmloader/configuration.h"
 
-zip_t *apk;
-zip_file_t *asset_file;
-zip_int64_t asset_index;
+typedef struct AAssetManager_impl{
+    zip_t *apk;
+} AAssetManager_impl;
+
+typedef struct AAsset_impl{
+    AAssetManager_impl *mgr;
+    zip_int64_t index;
+    zip_file_t *file;
+    int mode;
+} AAsset_impl;
 
 extern gmloader::config gmloader_config;
 
-
 /*
+Original code of the function can be found here:
 https://android.googlesource.com/platform/frameworks/base/+/master/native/android/asset_manager.cpp
 */
 
 ABI_ATTR void *AAssetManager_fromJava_impl(void *env, void *obj)
 {
     int err;
+    AAssetManager_impl * asset_mgr = (AAssetManager_impl*)malloc(sizeof(AAssetManager_impl));
 
-    if (!apk)
+    if ((asset_mgr->apk = zip_open(gmloader_config.apk_path.c_str(), ZIP_RDONLY, &err)) == NULL)
     {
-        if ((apk = zip_open(gmloader_config.apk_path.c_str(), ZIP_RDONLY, &err)) == NULL)
-        {
-            zip_error_t error;
-            zip_error_init_with_code(&error, err);
-            fprintf(stderr, "%s: cannot open zip archive '%s': %s\n",
-                __func__, gmloader_config.apk_path.c_str(), zip_error_strerror(&error));
-            zip_error_fini(&error);
-        }
+        zip_error_t error;
+        zip_error_init_with_code(&error, err);
+        fprintf(stderr, "%s: cannot open zip archive '%s': %s\n",
+            __func__, gmloader_config.apk_path.c_str(), zip_error_strerror(&error));
+        zip_error_fini(&error);
     }
 
-    return (void*)apk;
+    if (!asset_mgr->apk)
+    {
+        return NULL;
+    }
+    else
+    {
+        return (void*)asset_mgr;
+    }
 }
 
 ABI_ATTR void *AAssetManager_open_impl(void *mgr, const char *filename, int mode)
@@ -56,55 +68,45 @@ ABI_ATTR void *AAssetManager_open_impl(void *mgr, const char *filename, int mode
     } AccessMode;
     */
 
-    if(!apk)
+    AAssetManager_impl* asset_mgr = (AAssetManager_impl*) mgr;
+    AAsset_impl* asset = (AAsset_impl*)malloc(sizeof(AAsset_impl));
+    asset->mgr = asset_mgr;
+    asset->mode = mode;
+
+    if(!asset_mgr->apk)
     {
         fprintf(stderr, "%s: apk not initialized\n",__func__);
         return NULL;
     }
 
-    if ((asset_index = zip_name_locate(apk, filename, ZIP_FL_NOCASE)) == -1)
-    {
-        fprintf(stderr, "%s: cannot locate %s\n",__func__, filename);
-    }
-    else
-    {
-        return (void*)asset_index;
-    }
-
-    /*
-        No safety test done here, if filename length > 1024 - 7
-        gmloadernext will crash with:
-
-        *** buffer overflow detected ***: terminated
-
-        TODO: fix this :)
-    */
-    char filename_restored[1024] = "assets/";
+    char filename_restored[strlen(filename) + 7] = "assets/";
     strcat(filename_restored, filename);
 
-    if ((asset_index = zip_name_locate(apk, filename_restored, ZIP_FL_NOCASE)) == -1)
+    if ((asset->index = zip_name_locate(asset->mgr->apk, filename_restored, ZIP_FL_NOCASE)) == -1)
     {
         fprintf(stderr, "%s: cannot locate %s\n",__func__, filename_restored);
         return NULL;
     }
     else
     {
-        return (void*)asset_index;
+        return (void*)asset;
     }
 
 }
 
-ABI_ATTR off_t AAsset_getLength_impl()
+ABI_ATTR off_t AAsset_getLength_impl(void *f)
 {
-    if(!apk || !asset_index)
+    AAsset_impl* asset = (AAsset_impl*)f;
+
+    if(!asset)
     {
-        fprintf(stderr, "%s: apk or asset not initialized\n",__func__);
+        fprintf(stderr, "%s: asset not initialized\n",__func__);
         return 0;
     }
 
     zip_stat_t stt = {};
     zip_stat_init(&stt);
-    if ((zip_stat_index(apk, asset_index, ZIP_STAT_SIZE, &stt)) == -1)
+    if ((zip_stat_index(asset->mgr->apk, asset->index, ZIP_STAT_SIZE, &stt)) == -1)
     {
         return 0;
     }
@@ -115,15 +117,16 @@ ABI_ATTR off_t AAsset_getLength_impl()
 
 ABI_ATTR off_t AAsset_read_impl(void *f, void *buf, size_t count)
 {
+    AAsset_impl* asset = (AAsset_impl*)f;
     int nread;
-    if((asset_file = zip_fopen_index(apk, asset_index, ZIP_FL_UNCHANGED)) == NULL)
+    if((asset->file = zip_fopen_index(asset->mgr->apk, asset->index, ZIP_FL_UNCHANGED)) == NULL)
     {
-        fprintf(stderr, "%s: cannot open the file (index = %ld)\n",__func__, asset_index);
+        fprintf(stderr, "%s: cannot open the file (index = %ld)\n",__func__, asset->index);
         return 0;
     }
 
 
-    if((nread=zip_fread(asset_file, buf, count)) == -1)
+    if((nread=zip_fread(asset->file, buf, count)) == -1)
     {
         fprintf(stderr, "%s: cannot read the file\n",__func__);
         return 0;
@@ -134,8 +137,9 @@ ABI_ATTR off_t AAsset_read_impl(void *f, void *buf, size_t count)
 
 ABI_ATTR void AAsset_close_impl(void *f)
 {
-    asset_index = 0;
-    asset_index = -1;
+    AAsset_impl* asset = (AAsset_impl*)f;
+    free(asset->file);
+    free(asset);
 }
 
 DynLibFunction symtable_zlib[] = {
