@@ -13,7 +13,7 @@ void init_config(){
     gmloader_config.force_platform = "os_android";
 }
 
-int read_config_file(const char* path){
+int read_config_file(const char* path) {
     printf("Loading config file (%s)\n", path);
 
     std::ifstream config_file(path);
@@ -21,72 +21,36 @@ int read_config_file(const char* path){
 
     int p_loaded = 0;
 
-    try{
+    try {
         config_json = json::parse(config_file);
-    }catch (const json::parse_error& e){
+    } catch (const json::parse_error& e) {
         warning("\tparse error (%s)\n", e.what());
         return -1;
-    } 
-
-    try{
-        config_json.at("save_dir").get_to(gmloader_config.save_dir);
-        p_loaded++;
-    }catch (const json::out_of_range& e){
-        // default value
-    }catch (const json::type_error& e){
-        warning("\tsave_dir type error\n");
     }
-    printf("\tsave_dir = %s\n",gmloader_config.save_dir.c_str());
     
-    try{
-        config_json.at("apk_path").get_to(gmloader_config.apk_path);
-        p_loaded++;
-    }catch (const json::out_of_range& e){
-        // default value
-    }catch (const json::type_error& e){
-        warning("\tapk_path type error\n");
-    }
-    printf("\tapk_path = %s\n",gmloader_config.apk_path.c_str());
+    gmloader_config.save_dir = config_json.value("save_dir", std::string("default_save_dir"));
+    printf("\tsave_dir = %s\n", gmloader_config.save_dir.c_str());
+    p_loaded += !gmloader_config.save_dir.empty();
 
-    try{
-        config_json.at("show_cursor").get_to(gmloader_config.show_cursor);
-        p_loaded++;
-    }catch (const json::out_of_range& e){
-        // default value
-    }catch (const json::type_error& e){
-        warning("\tshow_cursor type error\n");
-    }
-    printf("\tshow_cursor = %d\n",gmloader_config.show_cursor);
+    gmloader_config.apk_path = config_json.value("apk_path", std::string("default_apk_path"));
+    printf("\tapk_path = %s\n", gmloader_config.apk_path.c_str());
+    p_loaded += !gmloader_config.apk_path.empty();
 
-    try{
-        config_json.at("disable_controller").get_to(gmloader_config.disable_controller);
-        p_loaded++;
-    }catch (const json::out_of_range& e){
-        // default value
-    }catch (const json::type_error& e){
-        warning("\tdisable_controller type error\n");
-    }
-    printf("\tdisable_controller = %d\n",gmloader_config.disable_controller);
+    gmloader_config.show_cursor = config_json.value("show_cursor", false);
+    printf("\tshow_cursor = %d\n", gmloader_config.show_cursor);
+    p_loaded++;
 
-    try{
-        config_json.at("disable_depth").get_to(gmloader_config.disable_depth);
-        p_loaded++;
-    }catch (const json::out_of_range& e){
-        // default value
-    }catch (const json::type_error& e){
-        warning("\tdisable_depth type error\n");
-    }
-    printf("\tdisable_depth = %d\n",gmloader_config.disable_depth);
+    gmloader_config.disable_controller = config_json.value("disable_controller", false);
+    printf("\tdisable_controller = %d\n", gmloader_config.disable_controller);
+    p_loaded++;
 
-    try{
-        config_json.at("force_platform").get_to(gmloader_config.force_platform);
-        p_loaded++;
-    }catch (const json::out_of_range& e){
-        // default value
-    }catch (const json::type_error& e){
-        warning("\tforce_platform type error\n");
-    }
-    printf("\tforce_platform = %s\n",gmloader_config.force_platform.c_str());
+    gmloader_config.disable_depth = config_json.value("disable_depth", false);
+    printf("\tdisable_depth = %d\n", gmloader_config.disable_depth);
+    p_loaded++;
+
+    gmloader_config.force_platform = config_json.value("force_platform", std::string("default_platform"));
+    printf("\tforce_platform = %s\n", gmloader_config.force_platform.c_str());
+    p_loaded += !gmloader_config.force_platform.empty();
 
     return p_loaded;
 }

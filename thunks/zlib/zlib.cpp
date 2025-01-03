@@ -97,7 +97,6 @@ ABI_ATTR void *AAssetManager_open_impl(void *mgr, const char *filename, int mode
 ABI_ATTR off_t AAsset_getLength_impl(void *f)
 {
     AAsset_impl* asset = (AAsset_impl*)f;
-
     if(!asset)
     {
         fprintf(stderr, "%s: asset not initialized\n",__func__);
@@ -124,8 +123,7 @@ ABI_ATTR off_t AAsset_read_impl(void *f, void *buf, size_t count)
         fprintf(stderr, "%s: cannot open the file (index = %ld)\n",__func__, asset->index);
         return 0;
     }
-
-
+    
     if((nread=zip_fread(asset->file, buf, count)) == -1)
     {
         fprintf(stderr, "%s: cannot read the file\n",__func__);

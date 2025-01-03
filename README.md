@@ -1,7 +1,7 @@
 # GMLoader-next:
 A repository for _further_ experimenting with elf loading and in-place patching of android native libraries on non-android operating systems.
 
-This attempts to fix several shortcomings the previous versions of GMLoader had, offering a more compliant compatibility layer, and an elf loader that supports even more relocation types.
+This attempts to fix several shortcomings the [previous versions of GMLoader](https://github.com/JohnnyonFlame/droidports) had, offering a more compliant compatibility layer, and an elf loader that supports even more relocation types.
 
 ### Disclaimers:
 -----
@@ -35,29 +35,36 @@ LLVM_INC=/usr/aarch64-linux-gnu/include/c++/10/aarch64-linux-gnu \
 python3 scripts/generate_libc.py aarch64-linux-gnu --llvm-includes /usr/aarch64-linux-gnu/include/c++/10/aarch64-linux-gnu --llvm-library-file "/usr/lib/llvm-11/lib/libclang-11.so.1"
 ```
 
-In order to deploy, you must copy the `lib` redist folder in the application's folder,
-those files are part of the runtime, and are required to provide the functionality needed
-by the runner.
+In order to deploy, you must copy the `lib` redist folder in the application's folder, those files are part of the runtime, and are required to provide the functionality needed by the runner.
 
 See [the related documentation](lib/README) for reference.
 
 ### Debugging:
 -----
+Git info is baked into the binary and can be pulled with `strings gmloadernext.${DEVICE_ARCH} | grep -E (GIT_|BUILD_)`, for example:
+```
+root@SD865: strings gmloadernext.${DEVICE_ARCH} | grep -E (GIT_|BUILD_)
+BUILD_DATE_20250103_hh:mm:ss
+GIT_BRANCH_master
+GIT_HASH_a4b6187a6757cd8cc5eb4af958d2044e2543677b
+```
+
 The android libraries can be debugged with `gdb` using a breakpoint trick - check out [the provided debugging example](debug.gdb).
 
 For this to be possible, you must extract the libraries from the APK into the application's library folder following the same structure as you would on the APK.
 
 ### Config file
 -----
-gmloadernext can load a json formatted configuration file using the `-c` option. For exemple `./gmloader.aarch64 -c gmloader.conf`
+GMLoader-next can load a json formatted configuration file using the `-c` option. For exemple `./gmloadernext.aarch64 -c gmloader.json`
 
-**gmloader.conf**:
+**gmloader.json**:
 ```json
 {
     "save_dir" : "gamedata",
     "apk_path" : "my_game.apk",
     "show_cursor" : false,
     "disable_controller" : false,
+    "disable_depth" : false,
     "force_platform" : "os_windows"
 }
 ```
@@ -70,6 +77,7 @@ When no configuration file is present the default values are:
 | apk_path           | game.apk      |
 | show_cursor        | true          |
 | disable_controller | false         |
+| disable_depth      | false         |
 | force_platform     | os_android    |
 
 Supported values for force_platform are:

@@ -124,7 +124,7 @@ typedef struct LLVMVars {
 // https://github.com/UnderminersTeam/UndertaleModTool/blob/caf04126f273b57bb2200b8739bb9d57e25d8f92/UndertaleModLib/Compiler/BuiltinList.cs#L3165
 // os_gxgames is unknown
 // os_ps5 value is unknown
-#define os_unknown    ((double)(-1.0f));
+#define os_unknown    ((double)(-1.0f))
 #define os_windows    ((double)(0.0f))
 #define os_macosx     ((double)(1.0f))
 #define os_ios        ((double)(3.0f))
