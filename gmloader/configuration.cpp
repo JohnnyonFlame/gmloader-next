@@ -17,42 +17,27 @@ int read_config_file(const char* path) {
     printf("Loading config file (%s)\n", path);
 
     std::ifstream config_file(path);
-    json config_json;
-
-    int p_loaded = 0;
-
-    try {
-        config_json = json::parse(config_file);
-    } catch (const json::parse_error& e) {
-        warning("\tparse error (%s)\n", e.what());
+    if (!config_file.is_open()) {
+        std::cerr << "Error: Could not open config file at " << path << "\n";
         return -1;
     }
-    
-    gmloader_config.save_dir = config_json.value("save_dir", std::string("default_save_dir"));
-    printf("\tsave_dir = %s\n", gmloader_config.save_dir.c_str());
-    p_loaded += !gmloader_config.save_dir.empty();
 
-    gmloader_config.apk_path = config_json.value("apk_path", std::string("default_apk_path"));
-    printf("\tapk_path = %s\n", gmloader_config.apk_path.c_str());
-    p_loaded += !gmloader_config.apk_path.empty();
+    json config_json;
+    try {
+        config_file >> config_json;
+    } catch (const json::parse_error& e) {
+        std::cerr << "Parse error: " << e.what() << "\n";
+        return -1;
+    }
 
-    gmloader_config.show_cursor = config_json.value("show_cursor", false);
-    printf("\tshow_cursor = %d\n", gmloader_config.show_cursor);
-    p_loaded++;
+    try {
+        config_json.get_to(gmloader_config);
+    } catch (const std::exception& e) {
+        std::cerr << "Error applying configuration: " << e.what() << "\n";
+        return -1;
+    }
 
-    gmloader_config.disable_controller = config_json.value("disable_controller", false);
-    printf("\tdisable_controller = %d\n", gmloader_config.disable_controller);
-    p_loaded++;
-
-    gmloader_config.disable_depth = config_json.value("disable_depth", false);
-    printf("\tdisable_depth = %d\n", gmloader_config.disable_depth);
-    p_loaded++;
-
-    gmloader_config.force_platform = config_json.value("force_platform", std::string("default_platform"));
-    printf("\tforce_platform = %s\n", gmloader_config.force_platform.c_str());
-    p_loaded += !gmloader_config.force_platform.empty();
-
-    return p_loaded;
+    return 1;
 }
 
 void show_config(){

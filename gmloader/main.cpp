@@ -31,7 +31,6 @@ extern DynLibFunction symtable_libc[];
 extern DynLibFunction symtable_zlib[];
 extern DynLibFunction symtable_gles2[];
 
-extern gmloader::config gmloader_config;
 extern double FORCE_PLATFORM;
 
 DynLibFunction *so_static_patches[32] = {

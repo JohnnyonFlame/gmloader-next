@@ -21,8 +21,6 @@ typedef struct AAsset_impl{
     int mode;
 } AAsset_impl;
 
-extern gmloader::config gmloader_config;
-
 /*
 Original code of the function can be found here:
 https://android.googlesource.com/platform/frameworks/base/+/master/native/android/asset_manager.cpp
@@ -55,7 +53,7 @@ ABI_ATTR void *AAssetManager_fromJava_impl(void *env, void *obj)
 ABI_ATTR void *AAssetManager_open_impl(void *mgr, const char *filename, int mode)
 {
 
-    /* we don't care for now about the mode but we never now:
+    /* We don't care about AccessMode for now, but for future reference:
     https://android.googlesource.com/platform/frameworks/base/+/master/libs/androidfw/include/androidfw/Asset.h
     typedef enum AccessMode {
         ACCESS_UNKNOWN = 0,
@@ -123,7 +121,7 @@ ABI_ATTR off_t AAsset_read_impl(void *f, void *buf, size_t count)
         fprintf(stderr, "%s: cannot open the file (index = %ld)\n",__func__, asset->index);
         return 0;
     }
-    
+
     if((nread=zip_fread(asset->file, buf, count)) == -1)
     {
         fprintf(stderr, "%s: cannot read the file\n",__func__);
