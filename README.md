@@ -13,7 +13,11 @@ Corrections, fixes, issue reports and optimizations are always welcome.
 ### Building and Deploying [example]:
 -----
 
+First clone the repository and all of it's submodules:
+
 `git clone <repository url> --recursive`
+
+Now build the project for your desired target platforms, the following build options are available:
 
 - `ARCH`: Specify the architecture, e.g.: `aarch64-linux-gnu` or `arm-linux-gnueabihf`
 - `LLVM_FILE`: Specify the LLVM Clang library file, e.g.: `/usr/lib/llvm-9/lib/libclang-9.so.1` for clang-9.
@@ -24,7 +28,7 @@ Corrections, fixes, issue reports and optimizations are always welcome.
 make -f Makefile.gmloader ARCH=aarch64-linux-gnu
 ```
 
-Or, for a debian bullseye chroot within wsl2:
+As an example, you can build this using Debian Bullseye to target older platforms:
 
 ```bash
 make -f Makefile.gmloader \
@@ -35,7 +39,8 @@ LLVM_INC=/usr/aarch64-linux-gnu/include/c++/10/aarch64-linux-gnu \
 python3 scripts/generate_libc.py aarch64-linux-gnu --llvm-includes /usr/aarch64-linux-gnu/include/c++/10/aarch64-linux-gnu --llvm-library-file "/usr/lib/llvm-11/lib/libclang-11.so.1"
 ```
 
-In order to deploy, you must copy the `lib` redist folder in the application's folder, those files are part of the runtime, and are required to provide the functionality needed by the runner.
+Now, to deploy, you must copy the `lib` redist folder in the application's folder. Those files are dependencies of the guest Android application (e.g. the runner) and are used to provide
+a more accurate Android environment for the guest application.
 
 See [the related documentation](lib/README) for reference.
 
