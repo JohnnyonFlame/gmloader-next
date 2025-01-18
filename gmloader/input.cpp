@@ -28,8 +28,6 @@ static controller_t sdl_controllers[8] = {
     {.controller = NULL, .which = -1, .slot = -1}
 };
 
-extern gmloader::config gmloader_config;
-
 static int get_free_controller_slot()
 {
     for (int i = 0; i < ARRAY_SIZE(sdl_controllers); i++) {

@@ -89,9 +89,20 @@ so_module libyoyo = {};
 
 int RunnerJNILib_MoveTaskToBackCalled = 0;
 
+static fs::path get_absolute_path(const char* path, fs::path work_dir){
+
+    fs::path fs_path = fs::path(path);
+    
+    if ( fs_path.is_relative() ){
+        fs_path = work_dir / fs_path;
+    }
+
+    return fs_path;
+}
+
 int main(int argc, char *argv[])
 {
-    init_config();
+    gmloader_config.init_defaults();
 
     fs::path work_dir, config_file_path, save_dir, apk_path;
     work_dir = fs::canonical(fs::current_path()) / "";
@@ -100,7 +111,7 @@ int main(int argc, char *argv[])
         
         config_file_path = work_dir / argv[2];
 
-        if( read_config_file(config_file_path.c_str()) < 0 ){
+        if(gmloader_config.parse_file(config_file_path.c_str()) < 0 ){
             warning("Error while loading the config file\n");
         }
 
