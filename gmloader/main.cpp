@@ -1,6 +1,5 @@
 #include <SDL2/SDL.h>
 #include <stdio.h>
-#include <filesystem>
 #include <signal.h>
 #include <zip.h>
 
@@ -12,6 +11,7 @@
 #include "classes/RunnerJNILib.h"
 #include "khronos/gles2.h"
 #include "libyoyo.h"
+#include "configuration.h"
 
 /*
       Don't touch this incantation. It serves no practical
@@ -25,11 +25,13 @@
 thread_local int tls0[2<<12] = {};
 int foo() { return tls0[0]++; }
 
-namespace fs = std::filesystem;
+#define CONFIG_FILE     "config.json"
 
 extern DynLibFunction symtable_libc[];
 extern DynLibFunction symtable_zlib[];
 extern DynLibFunction symtable_gles2[];
+
+extern double FORCE_PLATFORM;
 
 DynLibFunction *so_static_patches[32] = {
     NULL,
@@ -89,10 +91,52 @@ int RunnerJNILib_MoveTaskToBackCalled = 0;
 
 int main(int argc, char *argv[])
 {
-    fs::path work_dir, apk_path;
-    work_dir = fs::current_path();
+    init_config();
+
+    fs::path work_dir, config_file_path, save_dir, apk_path;
     work_dir = fs::canonical(fs::current_path()) / "";
-    apk_path = work_dir / "game.apk";
+
+    if (argc > 2 && strcmp(argv[1], "-c") == 0) {
+        
+        config_file_path = work_dir / argv[2];
+
+        if( read_config_file(config_file_path.c_str()) < 0 ){
+            warning("Error while loading the config file\n");
+        }
+
+    }
+
+    char platform_ov[32];
+    strncpy(platform_ov, gmloader_config.force_platform.c_str(), sizeof(platform_ov) - 1);
+    platform_ov[sizeof(platform_ov) - 1] = '\0';
+    
+    std::unordered_map<std::string, int> platform_map = {
+        {"os_unknown", os_unknown},
+        {"os_windows", os_windows},
+        {"os_macosx", os_macosx},
+        {"os_ios", os_ios},
+        {"os_android", os_android},
+        {"os_linux", os_linux},
+        {"os_psvita", os_psvita},
+        {"os_ps4", os_ps4},
+        {"os_xboxone", os_xboxone},
+        {"os_tvos", os_tvos},
+        {"os_switch", os_switch}
+    };
+
+    std::string platform_str(platform_ov);
+    std::transform(platform_str.begin(), platform_str.end(), platform_str.begin(), ::tolower);
+    auto it = platform_map.find(platform_str);
+    if (it != platform_map.end()) {
+        FORCE_PLATFORM = it->second;
+    } else {
+        warning("Unexpected platform '%s'.\n", platform_ov);
+        strcpy(platform_ov, "os_unknown");
+        FORCE_PLATFORM = os_unknown;
+    }
+
+    save_dir = get_absolute_path(gmloader_config.save_dir.c_str(), work_dir) / "";
+    apk_path = get_absolute_path(gmloader_config.apk_path.c_str(), work_dir);
 
     int err;
     zip_t *apk = zip_open(apk_path.c_str(), ZIP_RDONLY, &err);
@@ -137,6 +181,9 @@ int main(int argc, char *argv[])
     if (!load_module("libyoyo.so", apk, libyoyo, addr_yoyo, vm)) return -1;
 
     patch_libyoyo(&libyoyo);
+    if(gmloader_config.disable_depth == 1) {
+        disable_depth();
+    }
     patch_input(&libyoyo);
     patch_gamepad(&libyoyo);
     patch_mouse(&libyoyo);
@@ -150,11 +197,11 @@ int main(int argc, char *argv[])
     if (ms_freq != NULL)
     {
         // Patch the default samplerate to something reasonable
-        *ms_freq = 44100;
+        *ms_freq = 22050;
     }
 
     String *apk_path_arg = (String *)env->NewStringUTF(apk_path.c_str());
-    String *save_dir_arg = (String *)env->NewStringUTF(work_dir.c_str());
+    String *save_dir_arg = (String *)env->NewStringUTF(save_dir.c_str());
     String *pkg_dir_arg = (String *)env->NewStringUTF("com.johnny.loader");
     printf("apk_path %s save_dir %s pkg_dir %s\n", apk_path_arg->str, save_dir_arg->str, pkg_dir_arg->str);
 
@@ -162,6 +209,14 @@ int main(int argc, char *argv[])
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER) != 0) {
         fatal_error("SDL could not initialize! SDL_Error: %s\n", SDL_GetError());
         return -1;
+    }
+
+    if(gmloader_config.show_cursor == 0) {
+        if (SDL_ShowCursor(SDL_DISABLE) < 0) {
+            warning("Cannot disable cursor: %s\n", SDL_GetError());
+        } else {
+            printf("Cursor disabled\n");
+        }
     }
 
     SDL_Window *sdl_win;
@@ -200,6 +255,7 @@ int main(int argc, char *argv[])
 
     int cont = 1;
     int w, h;
+
     RunnerJNILib::Startup(env, 0, apk_path_arg, save_dir_arg, pkg_dir_arg, 4, 0);
     while (cont != 0 && cont != 2 && RunnerJNILib_MoveTaskToBackCalled == 0) {
         if (update_inputs(sdl_win) != 1)

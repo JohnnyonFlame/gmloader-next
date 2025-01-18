@@ -119,10 +119,22 @@ typedef struct LLVMVars {
     void *pYYStackTrace;
 } LLVMVars;
 
+// OS values
+// https://manual.gamemaker.io/monthly/en/GameMaker_Language/GML_Reference/OS_And_Compiler/os_type.htm
+// https://github.com/UnderminersTeam/UndertaleModTool/blob/caf04126f273b57bb2200b8739bb9d57e25d8f92/UndertaleModLib/Compiler/BuiltinList.cs#L3165
+// os_gxgames is unknown
+// os_ps5 value is unknown
+#define os_unknown    ((double)(-1.0f))
 #define os_windows    ((double)(0.0f))
+#define os_macosx     ((double)(1.0f))
+#define os_ios        ((double)(3.0f))
 #define os_android    ((double)(4.0f))
 #define os_linux      ((double)(6.0f))
 #define os_psvita     ((double)(12.0f))
+#define os_ps4        ((double)(14.0f))
+#define os_xboxone    ((double)(15.0f))
+#define os_tvos       ((double)(20.0f))
+#define os_switch     ((double)(21.0f))
 #define gp_face1      ((double)(32769.0f))
 #define gp_face2      ((double)(32770.0f))
 #define gp_face3      ((double)(32771.0f))
@@ -270,3 +282,4 @@ extern void patch_input(struct so_module *mod);
 extern void patch_gamepad(struct so_module *mod);
 extern void patch_mouse(struct so_module *mod);
 extern int update_inputs(struct SDL_Window *sdl_win);
+void disable_depth();

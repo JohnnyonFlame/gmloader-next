@@ -33,6 +33,7 @@ ABI_ATTR void (*MemoryManager__Free_2)(void *) = NULL;
 ABI_ATTR void (*Mutex__ctor)(void*, char*) = NULL;
 ABI_ATTR void (*Mutex__dtor)(void *) = NULL;
 ABI_ATTR void (*SetWorkingDirectory_ptr)() = NULL;
+ABI_ATTR void (*surface_depth_disable)(RValue *ret, void *self, void *other, int argc, RValue *args) = NULL;
 bionic_off_t *g_GameFileLength = NULL; //android had 32bit off_t???
 char **g_pWorkingDirectory = NULL;
 char *g_fNoAudio = NULL;
@@ -87,6 +88,8 @@ static const char *fake_functs[] = {
     "psn_user_for_pad"
 };
 
+double FORCE_PLATFORM = os_android;
+
 ABI_ATTR int _dbg_csol_print(void *csol, const char *fmt, ...) {
     char csol_str[2048];
     va_list list;
@@ -119,7 +122,6 @@ ABI_ATTR static void game_end_reimpl(RValue *ret, void *self, void *other, int a
     *New_Room = 0xffffff9c;
 }
 
-double FORCE_PLATFORM = os_android;
 ABI_ATTR static double force_platform_type()
 {
     return FORCE_PLATFORM;
@@ -199,6 +201,9 @@ void patch_libyoyo(so_module *mod)
     // Unavailable in older versions
     FIND_SYMBOL(mod, YYCreateString, "_Z14YYCreateStringP6RValuePKc");
 
+    // Depth disable
+    FIND_SYMBOL(mod, surface_depth_disable, "_Z21F_SurfaceDepthDisableR6RValueP9CInstanceS2_iPS_");
+
     // Hook messages for debug
     hook_symbol(mod, "_Z11ShowMessagePKc", (uintptr_t)&show_message, 1);
     hook_symbol(mod, "_ZN12DummyConsole6OutputEPKcz", (uintptr_t)&_dbg_csol_print, 1);
@@ -238,4 +243,24 @@ void patch_libyoyo(so_module *mod)
     Function_Add("steam_stats_ready", steam_stats_ready, 0, 1);
 
     so_symbol_fix_ldmia(mod, "_Z11Shader_LoadPhjS_");
+}
+
+void disable_depth()
+{      
+    if (surface_depth_disable != NULL) {
+        RValue ret;
+        RValue args[1] = {
+            {
+                { .val = 1 },  // Union initialization
+                0,             // Default value for flags
+                VALUE_BOOL     // RValueType kind
+            }
+        };
+
+        surface_depth_disable(&ret, NULL, NULL, 1, &args[0]);
+        warning("HACK:: Disabled surface depth.\n");
+    } else {
+        warning("Depth disable hack requested but surface_depth_disable unusable.\n");
+    }
+
 }
