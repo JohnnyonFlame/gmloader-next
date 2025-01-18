@@ -15,16 +15,7 @@ struct gml_config {
     bool disable_depth;
     std::string force_platform;
 
-    // JSON deserialization
-    friend void from_json(const json& j, gml_config& c) {
-        j.at("save_dir").get_to(c.save_dir);
-        j.at("apk_path").get_to(c.apk_path);
-        j.at("show_cursor").get_to(c.show_cursor);
-        j.at("disable_controller").get_to(c.disable_controller);
-        j.at("disable_depth").get_to(c.disable_depth);
-        j.at("force_platform").get_to(c.force_platform);
-    }
-
+    friend void from_json(const json& j, gml_config& c);
     void init_defaults();
     int parse_file(const char *path);
     void show_config();

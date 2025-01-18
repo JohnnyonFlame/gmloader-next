@@ -3,6 +3,17 @@
 
 gml_config gmloader_config = {};
 
+#define get_if_exists(value, var) \
+    if (j.contains(value)) j.at(value).get_to(c.var);
+void from_json(const json& j, gml_config& c) {
+    get_if_exists("save_dir", save_dir);
+    get_if_exists("apk_path", apk_path);
+    get_if_exists("show_cursor", show_cursor);
+    get_if_exists("disable_controller", disable_controller);
+    get_if_exists("disable_depth", disable_depth);
+    get_if_exists("force_platform", force_platform);
+}
+
 void gml_config::init_defaults(){
     apk_path = "game.apk";
     save_dir = "";
