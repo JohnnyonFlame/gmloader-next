@@ -169,6 +169,13 @@ ABI_ATTR static void steam_stats_ready(RValue *ret, void *self, void *other, int
     ret->rvalue.val = 0;
 }
 
+ABI_ATTR static void window_handle(RValue *ret, void *self, void *other, int argc, RValue *args)
+{
+    warning("-- Called window_handle stub ! --\n");
+    ret->kind = VALUE_INT64;
+    ret->rvalue.v64 = 0;
+}
+
 void patch_libyoyo(so_module *mod)
 {
     // Load all of the native symbols referenced
@@ -268,6 +275,7 @@ void patch_libyoyo(so_module *mod)
         Function_Add(fake_functs[i], stub_gml, 1, 1);
     }
 
+    Function_Add("window_handle", window_handle, 0, 1);
 
     so_symbol_fix_ldmia(mod, "_Z11Shader_LoadPhjS_");
 }
