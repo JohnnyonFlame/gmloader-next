@@ -6,3 +6,5 @@ Thumbs.db:encryptable
 ehthumbs.db
 ehthumbs_vista.db
 cppcheck.cppcheck
+3rdparty/fmod/**
+!3rdparty/fmod/.gitkeep

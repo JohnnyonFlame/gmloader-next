@@ -23,6 +23,8 @@ Now build the project for your desired target platforms, the following build opt
 - `LLVM_FILE`: Specify the LLVM Clang library file, e.g.: `/usr/lib/llvm-9/lib/libclang-9.so.1` for clang-9.
 - `LLVM_INC`: Specify the path for LLVM includes for your architecture, e.g.: `aarch64-linux-gnu`.
 - `OPTM`: Specify the optimization flags, e.g.: `-O3`, `-Os` or `-Og -ggdb`.
+- `USE_FMOD`: Whether to build FMOD Extension support.
+    - You need to extract fmodstudioapi.tar.gz into `3rdparty/fmod` for FMOD support.
 
 ```bash
 make -f Makefile.gmloader ARCH=aarch64-linux-gnu

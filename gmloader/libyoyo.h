@@ -282,5 +282,6 @@ extern void patch_libyoyo(struct so_module *mod);
 extern void patch_input(struct so_module *mod);
 extern void patch_gamepad(struct so_module *mod);
 extern void patch_mouse(struct so_module *mod);
+extern void patch_fmod(struct so_module *mod);
 extern int update_inputs(struct SDL_Window *sdl_win);
 void disable_depth();
