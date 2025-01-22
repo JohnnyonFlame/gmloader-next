@@ -60,6 +60,7 @@ uintptr_t *New_Room = NULL;
 void **g_nYYCode = NULL;
 void **g_pGameFileBuffer = NULL;
 void **g_ppYYStackTrace = NULL;
+int *Extension_Main_number = NULL;
 
 uint8_t prev_kbd_state[N_KEYS] = {};
 uint8_t cur_keys[N_KEYS] = {};
@@ -110,6 +111,12 @@ ABI_ATTR void show_message(const char *c)
 ABI_ATTR static void alNoop()
 {
     return;
+}
+
+ABI_ATTR static void dont_init_extensions()
+{
+    //*Extension_Main_number = 0;
+    warning("dont_init_extensions!!!\n");
 }
 
 ABI_ATTR static void stub_gml(RValue *ret, void *self, void *other, int argc, RValue *args)
@@ -203,6 +210,12 @@ void patch_libyoyo(so_module *mod)
 
     // Depth disable
     FIND_SYMBOL(mod, surface_depth_disable, "_Z21F_SurfaceDepthDisableR6RValueP9CInstanceS2_iPS_");
+
+    // Disable extension support
+    FIND_SYMBOL(mod, Extension_Main_number, "Extension_Main_number");
+    //hook_symbol(mod, "_Z20Extension_Initializev", (uintptr_t)&dont_init_extensions, 1);
+    hook_symbol(mod, "_Z20Extension_PrePreparev", (uintptr_t)&dont_init_extensions, 1);
+    hook_symbol(mod, "_Z14Extension_LoadPhjS_", (uintptr_t)&dont_init_extensions, 1);
 
     // Hook messages for debug
     hook_symbol(mod, "_Z11ShowMessagePKc", (uintptr_t)&show_message, 1);
