@@ -86,7 +86,15 @@ static const char *fake_functs[] = {
     "psn_get_friends_scores",
     "psn_name_for_user",
     "psn_default_user",
-    "psn_user_for_pad"
+    "psn_user_for_pad",
+    "steam_utils_is_steam_running_on_steam_deck",
+    "steam_update",
+    "steam_is_screenshot_requested",
+    "steam_send_screenshot",
+    "steam_initialised",
+    "steam_stats_ready",
+    "steam_get_achievement",
+    "steam_set_achievement",
 };
 
 double FORCE_PLATFORM = os_android;
@@ -121,6 +129,8 @@ ABI_ATTR static void dont_init_extensions()
 
 ABI_ATTR static void stub_gml(RValue *ret, void *self, void *other, int argc, RValue *args)
 {
+    ret->kind = VALUE_REAL;
+    ret->rvalue.val = 0;
     /* */
 }
 
@@ -139,6 +149,12 @@ ABI_ATTR void force_platform_type_gms2(void *self, int n, RValue *args)
     WARN_STUB;
     args[0].kind = VALUE_REAL;
     args[0].rvalue.val = FORCE_PLATFORM;
+}
+
+ABI_ATTR static void steam_utils_is_steam_running_on_steam_deck(RValue *ret, void *self, void *other, int argc, RValue *args)
+{
+    ret->kind = VALUE_REAL;
+    ret->rvalue.val = 0;
 }
 
 ABI_ATTR static void steam_initialised(RValue *ret, void *self, void *other, int argc, RValue *args)
@@ -252,8 +268,6 @@ void patch_libyoyo(so_module *mod)
         Function_Add(fake_functs[i], stub_gml, 1, 1);
     }
 
-    Function_Add("steam_initialised", steam_initialised, 0, 1);
-    Function_Add("steam_stats_ready", steam_stats_ready, 0, 1);
 
     so_symbol_fix_ldmia(mod, "_Z11Shader_LoadPhjS_");
 }
