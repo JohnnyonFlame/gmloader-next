@@ -26,6 +26,7 @@ static const char *AccessYYString(const RValue *ret, int index)
     return "";
 }
 
+extern "C" void FMOD_SDL_Register(FMOD_SYSTEM *system);
 ABI_ATTR void fmod_init(RValue *ret, void *self, void *other, int argc, RValue *args)
 {
     ret->kind = VALUE_REAL;
@@ -37,23 +38,30 @@ ABI_ATTR void fmod_init(RValue *ret, void *self, void *other, int argc, RValue *
         ret->rvalue.val = 1.0;
         return;
     }
-
-    FMOD_RESULT res = FMOD::System_Create(&fmod_system);
+    
+    FMOD_RESULT res;
+    res = FMOD::Studio::System::create(&fmod_studio_system);
     if (res != FMOD_OK) {
-        fatal_error("[FMOD]: Could not create System.");
+        fatal_error("[FMOD]: Could not create Studio System (%d).\n", res);
         return;
     }
 
-    fmod_system->init(maxchannels, FMOD_INIT_NORMAL, 0);
-    res = FMOD::Studio::System::create(&fmod_studio_system);
+    res = fmod_studio_system->getCoreSystem(&fmod_system);
     if (res != FMOD_OK) {
-        fatal_error("[FMOD]: Could not create System.");
+        fatal_error("[FMOD]: Could not get Core System (%d).\n", res);
+        return;
+    }
+
+    FMOD_SDL_Register((FMOD_SYSTEM *)fmod_system);
+    res = fmod_system->setSoftwareFormat(0, FMOD_SPEAKERMODE_STEREO, 0);
+    if (res != FMOD_OK) {
+        fatal_error("[FMOD]: Could not set Software Format (%d).\n", maxchannels, res);
         return;
     }
 
     res = fmod_studio_system->initialize(maxchannels, FMOD_STUDIO_INIT_NORMAL, FMOD_INIT_NORMAL, 0);
     if (res != FMOD_OK) {
-        fatal_error("[FMOD]: Could not create System.");
+        fatal_error("[FMOD]: Could not init Studio System (%d).\n", res);
         return;
     }
 

@@ -49,6 +49,7 @@ ifeq (${USE_FMOD},1)
 	CXXFLAGS+=-DUSE_FMOD=1 -I./3rdparty/fmod/api/core/inc -I./3rdparty/fmod/api/studio/inc
 
 	LIBS+=-L./3rdparty/fmod/api/core/lib/${FMOD_ARCH} -L./3rdparty/fmod/api/studio/lib/${FMOD_ARCH} -lfmod -lfmodstudio
+	-include 3rdparty/FMOD_SDL.mk
 endif
 
 # Used by generate_libc.py to generate the function tables that are exported to the
@@ -83,8 +84,8 @@ clean:
 
 # By repeating the generated headers on this rule, we force them to start building
 # as soon as possible, so libc_table.cpp isn't waiting forever.
-build/${ARCH}/gmloader/gmloadernext.${DEVICE_ARCH}: ${LIBC_TABS} $(BSD_OBJ) $(ZIP_OBJ) $(OBJ)
-	$(CXX) $(LDFLAGS) -o $@ $(OBJ) $(ZIP_OBJ) $(BSD_OBJ) $(LIBS)
+build/${ARCH}/gmloader/gmloadernext.${DEVICE_ARCH}: ${LIBC_TABS} $(BSD_OBJ) $(ZIP_OBJ) $(FMODSDL_OBJ) $(OBJ)
+	$(CXX) $(LDFLAGS) -o $@ $(OBJ) $(ZIP_OBJ) $(FMODSDL_OBJ) $(BSD_OBJ) $(LIBS)
 
 build/${ARCH}/%.cpp.o: %.cpp
 	@mkdir -p $(@D)

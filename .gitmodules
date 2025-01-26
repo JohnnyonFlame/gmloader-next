@@ -10,3 +10,6 @@
 [submodule "3rdparty/libzip"]
 	path = 3rdparty/libzip
 	url = https://github.com/nih-at/libzip
+[submodule "3rdparty/FMOD_SDL"]
+	path = 3rdparty/FMOD_SDL
+	url = https://github.com/flibitijibibo/FMOD_SDL
