@@ -12,6 +12,7 @@
 #include "khronos/gles2.h"
 #include "libyoyo.h"
 #include "configuration.h"
+#include "texture.h"
 
 /*
       Don't touch this incantation. It serves no practical
@@ -200,6 +201,7 @@ int main(int argc, char *argv[])
     patch_mouse(&libyoyo);
     patch_fmod(&libyoyo);
     patch_gameframe(&libyoyo);
+    patch_texture(&libyoyo);
 
     int *ms_freq = NULL;
     if (has_al)
@@ -270,6 +272,8 @@ int main(int argc, char *argv[])
     int w, h;
 
     RunnerJNILib::Startup(env, 0, apk_path_arg, save_dir_arg, pkg_dir_arg, 4, 0);
+    setup_ended = 1;
+    
     while (cont != 0 && cont != 2 && RunnerJNILib_MoveTaskToBackCalled == 0) {
         if (update_inputs(sdl_win) != 1)
             break;

@@ -11,6 +11,7 @@ void from_json(const json& j, gml_config& c) {
     get_if_exists("show_cursor", show_cursor);
     get_if_exists("disable_controller", disable_controller);
     get_if_exists("disable_depth", disable_depth);
+    get_if_exists("disable_texhack", disable_texhack);
     get_if_exists("force_platform", force_platform);
 }
 
@@ -20,6 +21,7 @@ void gml_config::init_defaults(){
     show_cursor = true;
     disable_controller = false;
     disable_depth = false;
+    disable_texhack = true; /* Disabled by default until properly tested. */
     force_platform = "os_android";
 }
 
@@ -50,5 +52,6 @@ void gml_config::show_config(){
     printf("config: show_cursor = %d\n", show_cursor);
     printf("config: disable_controller = %d\n", disable_controller);
     printf("config: disable_depth = %d\n", disable_depth);
+    printf("config: disable_texhack = %d\n", disable_texhack);
     printf("config: force_platform = %s\n", force_platform.c_str());
 }
