@@ -4,6 +4,7 @@
 #include "fmod_studio.hpp"
 #include <filesystem>
 #include <vector>
+#include <unordered_map>
 #include <algorithm>
 
 #include "platform.h"
@@ -16,6 +17,8 @@ namespace fs = std::filesystem;
 static FMOD::System* fmod_system = nullptr;
 static FMOD::Studio::System* fmod_studio_system = nullptr;
 static std::vector<FMOD::Studio::EventInstance *> event_instances = {};
+static std::vector<FMOD::Studio::EventInstance *> event_instances_oneshot = {};
+static std::unordered_map<std::string, FMOD::Studio::EventDescription *> event_desc_list = {};
 
 static const char *AccessYYString(const RValue *ret, int index)
 {
@@ -55,7 +58,7 @@ ABI_ATTR void fmod_init(RValue *ret, void *self, void *other, int argc, RValue *
     FMOD_SDL_Register((FMOD_SYSTEM *)fmod_system);
     res = fmod_system->setSoftwareFormat(0, FMOD_SPEAKERMODE_STEREO, 0);
     if (res != FMOD_OK) {
-        fatal_error("[FMOD]: Could not set Software Format (%d).\n", maxchannels, res);
+        fatal_error("[FMOD]: Could not set Software Format (%d).\n", res);
         return;
     }
 
@@ -64,6 +67,11 @@ ABI_ATTR void fmod_init(RValue *ret, void *self, void *other, int argc, RValue *
         fatal_error("[FMOD]: Could not init Studio System (%d).\n", res);
         return;
     }
+
+    // pre-reserve ample space...
+    event_instances.reserve(2048);
+    event_instances_oneshot.reserve(2048);
+    event_desc_list.reserve(2048);
 
     ret->rvalue.val = 1.0;
 }
@@ -82,6 +90,10 @@ ABI_ATTR void fmod_destroy(RValue *ret, void *self, void *other, int argc, RValu
         fmod_system->release();
         fmod_system = nullptr;
     }
+
+    event_instances.clear();
+    event_instances_oneshot.clear();
+    event_desc_list.clear();
 }
 
 ABI_ATTR void fmod_bank_load(RValue *ret, void *self, void *other, int argc, RValue *args)
@@ -106,15 +118,36 @@ ABI_ATTR void fmod_bank_load(RValue *ret, void *self, void *other, int argc, RVa
 
 ABI_ATTR void fmod_update(RValue *ret, void *self, void *other, int argc, RValue *args)
 {
+    FMOD_RESULT result;
     ret->kind = VALUE_REAL;
+    ret->rvalue.val = 0.0;
+
     if (fmod_studio_system)
     {
-        fmod_studio_system->update();
+        result = fmod_studio_system->update();
+        if (result != FMOD_OK)
+            return;
+
+        int i = 0;
+        while (i < event_instances_oneshot.size())
+        {
+            auto oneshot = event_instances_oneshot.begin() + i;
+            FMOD_STUDIO_PLAYBACK_STATE state;
+
+            result = (*oneshot)->getPlaybackState(&state);
+            if (result == FMOD_OK)
+            {
+                if (state & FMOD_STUDIO_PLAYBACK_STOPPED) {
+                    (*oneshot)->release();
+                    event_instances_oneshot.erase(oneshot);
+                    continue;
+                }
+            }
+
+            i++;
+        }
+
         ret->rvalue.val = 1.0;
-    }
-    else
-    {
-        ret->rvalue.val = 0.0;
     }
 }
 ABI_ATTR void fmod_event_create_instance(RValue *ret, void *self, void *other, int argc, RValue *args)
@@ -158,10 +191,11 @@ ABI_ATTR void fmod_event_instance_stop(RValue *ret, void *self, void *other, int
 {
     ret->kind = VALUE_REAL;
     FMOD::Studio::EventInstance *instance = (FMOD::Studio::EventInstance *)args[0].rvalue.v64;
+    float isImmediate = YYGetReal(args, 1);
 
     if (instance)
     {
-        instance->stop(FMOD_STUDIO_STOP_ALLOWFADEOUT);
+        instance->stop((isImmediate != 0.0) ? FMOD_STUDIO_STOP_IMMEDIATE : FMOD_STUDIO_STOP_ALLOWFADEOUT);
         ret->rvalue.val = 1.0;
     }
     else
@@ -177,6 +211,10 @@ ABI_ATTR void fmod_event_instance_release(RValue *ret, void *self, void *other, 
     auto it = std::find(event_instances.begin(), event_instances.end(), instance);
     if (it != event_instances.end())
         event_instances.erase(it);
+
+    it = std::find(event_instances_oneshot.begin(), event_instances_oneshot.end(), instance);
+    if (it != event_instances_oneshot.end())
+        event_instances_oneshot.erase(it);
 
     if (instance)
     {
@@ -317,8 +355,8 @@ ABI_ATTR void fmod_event_instance_set_paused(RValue *ret, void *self, void *othe
     FMOD::Studio::EventInstance *instance = (FMOD::Studio::EventInstance *)args[0].rvalue.v64;
     if (instance)
     {
-        int flag = YYGetInt32(args, 1);
-        FMOD_RESULT result = instance->setPaused(flag);
+        double flag = YYGetReal(args, 1);
+        FMOD_RESULT result = instance->setPaused(flag != 0.0);
         ret->rvalue.val = (result == FMOD_OK) ? 1.0 : 0.0;
     }
 }
@@ -340,10 +378,17 @@ ABI_ATTR void fmod_event_instance_set_paused_all(RValue *ret, void *self, void *
     ret->kind = VALUE_REAL;
     ret->rvalue.val = 1.0;
 
-    int flag = YYGetInt32(args, 0);
+    double flag = YYGetReal(args, 0);
     for (auto& instance : event_instances)
     {
-        FMOD_RESULT res = instance->setPaused(flag);
+        FMOD_RESULT res = instance->setPaused(flag != 0.0);
+        if (res != FMOD_OK)
+            ret->rvalue.val = 0.0;
+    }
+
+    for (auto& instance : event_instances_oneshot)
+    {
+        FMOD_RESULT res = instance->setPaused(flag != 0.0);
         if (res != FMOD_OK)
             ret->rvalue.val = 0.0;
     }
@@ -352,35 +397,47 @@ ABI_ATTR void fmod_event_instance_set_paused_all(RValue *ret, void *self, void *
 ABI_ATTR void fmod_event_one_shot(RValue *ret, void *self, void *other, int argc, RValue *args)
 {
     ret->kind = VALUE_REAL;
+    FMOD_RESULT result;
     const char *event_path = AccessYYString(args, 0);
     FMOD::Studio::EventDescription* event_description = nullptr;
     FMOD::Studio::EventInstance* one_shot_instance = nullptr;
-    FMOD_RESULT result = fmod_studio_system->getEvent(event_path, &event_description);
-    if (result != FMOD_OK || event_description == nullptr)
+
+    /* Cache getEvent calls */
+    const auto it = std::find_if(event_desc_list.begin(), event_desc_list.end(), 
+        [&](const auto &x) { return x.first == std::string_view(event_path); });
+
+    if (it == event_desc_list.end())
     {
-        ret->rvalue.val = 0.0;
-        return;
+        result = fmod_studio_system->getEvent(event_path, &event_description);
+        if (result != FMOD_OK || event_description == nullptr)
+        {
+            ret->rvalue.val = 0.0;
+            return;
+        }
+
+        event_desc_list[std::string(event_path)] = event_description;
     }
+    else
+    {
+        event_description = it->second;
+    }
+
     result = event_description->createInstance(&one_shot_instance);
     if (result != FMOD_OK || one_shot_instance == nullptr)
     {
         ret->rvalue.val = 0.0;
         return;
     }
+
     result = one_shot_instance->start();
-    if (result != FMOD_OK)
-    {
-        one_shot_instance->release();
-        ret->rvalue.val = 0.0;
-        return;
-    }
-    one_shot_instance->release();
+    event_instances_oneshot.push_back(one_shot_instance);
     ret->rvalue.val = 1.0;
 }
 
 ABI_ATTR void fmod_event_one_shot_3d(RValue *ret, void *self, void *other, int argc, RValue *args)
 {
     ret->kind = VALUE_REAL;
+    FMOD_RESULT result;
     const char *event_path = AccessYYString(args, 0);
     float posX = YYGetReal(args, 1);
     float posY = YYGetReal(args, 2);
@@ -388,36 +445,40 @@ ABI_ATTR void fmod_event_one_shot_3d(RValue *ret, void *self, void *other, int a
     if (argc >= 4)
         posZ = YYGetReal(args, 3);
 
+    FMOD_3D_ATTRIBUTES attributes = { { posX, posY, posZ }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 1.0f }, { 0.0f, 1.0f, 0.0f } };
     FMOD::Studio::EventDescription* event_description = nullptr;
     FMOD::Studio::EventInstance* one_shot_instance = nullptr;
-    FMOD_RESULT result = fmod_studio_system->getEvent(event_path, &event_description);
-    if (result != FMOD_OK || event_description == nullptr)
+
+    /* Cache getEvent calls */
+    const auto it = std::find_if(event_desc_list.begin(), event_desc_list.end(), 
+        [&](auto &x) { return x.first == std::string_view(event_path); });
+
+    if (it == event_desc_list.end())
     {
-        ret->rvalue.val = 0.0;
-        return;
+        result = fmod_studio_system->getEvent(event_path, &event_description);
+        if (result != FMOD_OK || event_description == nullptr)
+        {
+            ret->rvalue.val = 0.0;
+            return;
+        }
+
+        event_desc_list[std::string(event_path)] = event_description;
     }
+    else
+    {
+        event_description = it->second;
+    }
+    
     result = event_description->createInstance(&one_shot_instance);
     if (result != FMOD_OK || one_shot_instance == nullptr)
     {
         ret->rvalue.val = 0.0;
         return;
     }
-    FMOD_3D_ATTRIBUTES attributes = { { posX, posY, posZ }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 1.0f }, { 0.0f, 1.0f, 0.0f } };
-    result = one_shot_instance->set3DAttributes(&attributes);
-    if (result != FMOD_OK)
-    {
-        one_shot_instance->release();
-        ret->rvalue.val = 0.0;
-        return;
-    }
-    result = one_shot_instance->start();
-    if (result != FMOD_OK)
-    {
-        one_shot_instance->release();
-        ret->rvalue.val = 0.0;
-        return;
-    }
-    one_shot_instance->release();
+
+    one_shot_instance->set3DAttributes(&attributes);
+    one_shot_instance->start();
+    event_instances_oneshot.push_back(one_shot_instance);
     ret->rvalue.val = 1.0;
 }
 
