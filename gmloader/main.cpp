@@ -3,6 +3,7 @@
 #include <signal.h>
 #include <zip.h>
 
+#include "lua.h"
 #include "platform.h"
 #include "so_util.h"
 #include "io_util.h"
@@ -202,6 +203,7 @@ int main(int argc, char *argv[])
     patch_fmod(&libyoyo);
     patch_gameframe(&libyoyo);
     patch_texture(&libyoyo);
+    patch_lua(&libyoyo);
 
     int *ms_freq = NULL;
     if (has_al)
@@ -273,7 +275,14 @@ int main(int argc, char *argv[])
 
     RunnerJNILib::Startup(env, 0, apk_path_arg, save_dir_arg, pkg_dir_arg, 4, 0);
     setup_ended = 1;
-    
+
+/*
+    run_lua(
+        "gml:show_debug_message(\"Testing built-in function calls\")\n"
+        "print(\"Can we fetch a global var?\", global.working_directory)\n"
+    );
+*/
+
     while (cont != 0 && cont != 2 && RunnerJNILib_MoveTaskToBackCalled == 0) {
         if (update_inputs(sdl_win) != 1)
             break;

@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <string.h>
 #include <stdarg.h>
 
 #include "platform.h"
@@ -17,6 +18,7 @@ ABI_ATTR int (*Audio_WAVs)(uint8_t*, uint32_t, uint8_t*, int) = NULL;
 ABI_ATTR int32_t (*Graphics_DisplayHeight)() = NULL;
 ABI_ATTR int32_t (*Graphics_DisplayWidth)() = NULL;
 ABI_ATTR int32_t (*YYGetInt32)(RValue *val, int idx) = NULL;
+ABI_ATTR int64_t (*YYGetInt64)(RValue *val, int idx) = NULL;
 ABI_ATTR double (*YYGetReal)(RValue *val, int idx) = NULL;
 ABI_ATTR void (*YYCreateString)(RValue *val, const char *str) = NULL;
 ABI_ATTR routine_t F_YoYo_DrawTextureFlush = NULL;
@@ -34,6 +36,15 @@ ABI_ATTR void (*Mutex__ctor)(void*, char*) = NULL;
 ABI_ATTR void (*Mutex__dtor)(void *) = NULL;
 ABI_ATTR void (*SetWorkingDirectory_ptr)() = NULL;
 ABI_ATTR void (*surface_depth_disable)(RValue *ret, void *self, void *other, int argc, RValue *args) = NULL;
+ABI_ATTR char (*Variable_GetValue_Direct)(void* inst, int var_slot, int array_idx, RValue *val, char unk1, char unk2) = NULL;
+ABI_ATTR char (*Variable_SetValue_Direct)(void* inst, int var_slot, int array_idx, RValue *val) = NULL;
+ABI_ATTR char (*Variable_GetBuiltIn_Direct)(void* inst, int var_slot, int array_idx, RValue *val) = NULL;
+ABI_ATTR char (*Variable_SetBuiltIn_Direct)(void* inst, int var_slot, int array_idx, RValue *val) = NULL;
+ABI_ATTR void (*Code_Function_GET_the_function)(int numb,char **name,void **code,int *args, int *unk) = NULL;
+ABI_ATTR void (*_RefThing__dec)(void *ref) = NULL;
+ABI_ATTR int (*Variable_BuiltIn_Find)(const char *name) = NULL;
+ABI_ATTR int (*Code_Variable_Find_Slot_From_Name)(void *instance, const char *name) = NULL;
+ABI_ATTR int (*Variable_FindName)(const char *name) = NULL; /* Unavailable in GMS 1.4+, very old symbol */
 bionic_off_t *g_GameFileLength = NULL; //android had 32bit off_t???
 char **g_pWorkingDirectory = NULL;
 char *g_fNoAudio = NULL;
@@ -45,6 +56,8 @@ int32_t *g_MousePosY = NULL;
 LLVMVars **g_pLLVMVars = NULL;
 long long *g_GML_DeltaTime = NULL;
 int *the_numb = NULL;
+int *g_nInstanceVariables = NULL;
+void **g_pGlobal = NULL;
 RFunction **the_functions = NULL;
 uint32_t *g_IOFrameCount = NULL;
 uint8_t *_IO_ButtonDown = NULL;
@@ -213,7 +226,9 @@ void patch_libyoyo(so_module *mod)
     ENSURE_SYMBOL(mod, ReadPNGFile, "_Z11ReadPNGFilePviPiS0_b");
     ENSURE_SYMBOL(mod, the_functions, "the_functions");
     ENSURE_SYMBOL(mod, the_numb, "the_numb");
+    ENSURE_SYMBOL(mod, g_pGlobal, "g_pGlobal");
     ENSURE_SYMBOL(mod, YYGetInt32, "_Z10YYGetInt32PK6RValuei");
+    ENSURE_SYMBOL(mod, YYGetInt64, "_Z10YYGetInt64PK6RValuei");
     ENSURE_SYMBOL(mod, YYGetReal, "_Z9YYGetRealPK6RValuei");
     ENSURE_SYMBOL(mod, _IO_ButtonDown, "_IO_ButtonDown");
     ENSURE_SYMBOL(mod, _IO_ButtonPressed, "_IO_ButtonPressed");
@@ -223,13 +238,25 @@ void patch_libyoyo(so_module *mod)
     ENSURE_SYMBOL(mod, _IO_KeyPressed, "_IO_KeyPressed", "l_IO_KeyPressed");
     ENSURE_SYMBOL(mod, _IO_KeyReleased, "_IO_KeyReleased", "l_IO_KeyReleased");
     ENSURE_SYMBOL(mod, _IO_LastKey, "_IO_LastKey", "l_IO_LastKey");
+    ENSURE_SYMBOL(mod, Variable_GetValue_Direct, "_Z24Variable_GetValue_DirectP12YYObjectBaseiiP6RValue", "_Z24Variable_GetValue_DirectP12YYObjectBaseiiP6RValuebb", "_Z24Variable_GetValue_DirectP9CInstanceiiP6RValue");
+    ENSURE_SYMBOL(mod, Variable_SetValue_Direct, "_Z24Variable_SetValue_DirectP12YYObjectBaseiiP6RValue", "_Z24Variable_SetValue_DirectP9CInstanceiiP6RValue");
+    ENSURE_SYMBOL(mod, Code_Function_GET_the_function, "_Z30Code_Function_GET_the_functioniPPKcPPvPi", "_Z30Code_Function_GET_the_functioniPPKcPPvPiS4_", "_Z30Code_Function_GET_the_functioniPPcPPvPiS3_");
+    ENSURE_SYMBOL(mod, Variable_BuiltIn_Find, "_Z21Variable_BuiltIn_FindPKc", "_Z21Variable_BuiltIn_FindPc");
 
     // Versioned symbols
     FIND_SYMBOL(mod, MemoryManager__Free, "_ZN13MemoryManager4FreeEPv", "_ZN13MemoryManager4FreeEPKv");
     FIND_SYMBOL(mod, MemoryManager__Free_2, "_ZN13MemoryManager4FreeEPKvb");
 
+    // Unavailable in newer versions
+    FIND_SYMBOL(mod, g_nInstanceVariables, "g_nInstanceVariables"); /* Can be used to sus out for the older OUYA runners... */
+    FIND_SYMBOL(mod, Variable_FindName, "_Z17Variable_FindNamePc");
+
     // Unavailable in older versions
+    FIND_SYMBOL(mod, Variable_GetBuiltIn_Direct, "_Z26Variable_GetBuiltIn_DirectP12YYObjectBaseiiP6RValue");
+    FIND_SYMBOL(mod, Variable_SetBuiltIn_Direct, "_Z26Variable_SetBuiltIn_DirectP12YYObjectBaseiiP6RValue");
+    FIND_SYMBOL(mod, Code_Variable_Find_Slot_From_Name, "_Z33Code_Variable_Find_Slot_From_NameP12YYObjectBasePKc");
     FIND_SYMBOL(mod, YYCreateString, "_Z14YYCreateStringP6RValuePKc");
+    FIND_SYMBOL(mod, _RefThing__dec, "_ZN9_RefThingIPKcE3decEv");
 
     // Depth disable
     FIND_SYMBOL(mod, surface_depth_disable, "_Z21F_SurfaceDepthDisableR6RValueP9CInstanceS2_iPS_");
@@ -237,7 +264,7 @@ void patch_libyoyo(so_module *mod)
     // Disable extension support
     FIND_SYMBOL(mod, Extension_Main_number, "Extension_Main_number");
     //hook_symbol(mod, "_Z20Extension_Initializev", (uintptr_t)&dont_init_extensions, 1);
-    hook_symbol(mod, "_Z20Extension_PrePreparev", (uintptr_t)&dont_init_extensions, 1);
+    // hook_symbol(mod, "_Z20Extension_PrePreparev", (uintptr_t)&dont_init_extensions, 1);
     hook_symbol(mod, "_Z14Extension_LoadPhjS_", (uintptr_t)&dont_init_extensions, 1);
 
     // Hook messages for debug
@@ -298,4 +325,67 @@ void disable_depth()
         warning("Depth disable hack requested but surface_depth_disable unusable.\n");
     }
 
+}
+
+int UsesRefStrings()
+{
+    return g_nInstanceVariables != NULL;
+}
+
+void YYCreateStringHelper(RValue *rval, const char *str)
+{
+    if (UsesRefStrings())
+    {
+        if (YYCreateString != NULL)
+        {
+            YYCreateString(rval, str);
+        }
+        else // need to create it manually...
+        {
+            YYThingDerefHelper(rval);
+            Ref *ref = (Ref*)malloc(sizeof(*ref));
+            *ref = (Ref){
+                .m_thing = strdup(str),
+                .m_refCount = 1,
+                .m_size = strlen(str)
+            };
+
+            rval->kind = VALUE_STRING;
+            rval->rvalue.str = ref;
+        }
+    }
+    else // very old runners, strings werent refs
+    {
+        YYThingDerefHelper(rval);
+        rval->kind = VALUE_STRING;
+        rval->rvalue.str = (Ref*)strdup(str);
+    }
+}
+
+void YYThingDerefHelper(RValue *rval)
+{
+    if (rval->kind != VALUE_STRING || rval->kind != VALUE_REF)
+        return;
+
+    if (UsesRefStrings())
+    {
+        if (_RefThing__dec)
+        {
+            _RefThing__dec(rval);
+        }
+        else
+        {
+            free(rval->rvalue.str->m_thing);
+            rval->rvalue.str->m_thing = NULL;
+            free(rval->rvalue.str);
+            rval->rvalue.str = NULL;
+            rval->kind = VALUE_UNSET;
+        }
+    }
+    else
+    {
+        rval->rvalue.str = NULL;
+        free(rval->rvalue.str);
+        rval->kind = VALUE_UNSET;
+    }
 }

@@ -13,3 +13,6 @@
 [submodule "3rdparty/FMOD_SDL"]
 	path = 3rdparty/FMOD_SDL
 	url = https://github.com/flibitijibibo/FMOD_SDL
+[submodule "3rdparty/lua"]
+	path = 3rdparty/lua
+	url = https://github.com/lua/lua
