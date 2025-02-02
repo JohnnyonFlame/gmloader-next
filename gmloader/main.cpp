@@ -178,7 +178,7 @@ int main(int argc, char *argv[])
     // Release mode should allocate in any way the system deems suitable
     uintptr_t addr_libm = 0;
     uintptr_t addr_libcrt = 0;
-    uintptr_t addr_stdcxx = 0;
+    uintptr_t addr_stdcpp = 0;
     uintptr_t addr_openal = 0;
     uintptr_t addr_yoyo = 0;
 #endif
