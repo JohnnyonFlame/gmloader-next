@@ -8,10 +8,21 @@
 #include <stdio.h>
 #include <stdio.h>
 #include <stdarg.h>
+#include <link.h>
 #include "platform.h"
 #include "so_util.h"
 
 #include "bionic_file.h"
+
+extern "C" ABI_ATTR int dl_iterate_phdr_impl(
+                 int (*callback)(struct dl_phdr_info *info,
+                                 size_t size, void *data),
+                 void *data)
+{
+    // TODO:: Implement a reasonable version of this.
+    fatal_error("-- dl_iterate_phdr was called! --\n");
+    return -1;
+}
 
 extern "C" ABI_ATTR int login_tty_impl(int fd)
 {
