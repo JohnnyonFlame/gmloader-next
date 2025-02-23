@@ -107,6 +107,26 @@ typedef struct CThread {
     struct BIONIC_Mutex * m_pTermMutex;
 } CThread;
 
+// TODO:: track down more usage of this structure and
+// document it's internals a bit better.
+typedef struct CCode {
+	void *unk1; /* vmt? */
+	struct CCode *m_next;
+	int m_kind; /* < 3 are functions, == 3 are static accessors? what if we use & 0x10 to denote hooked? */
+	void *m_text; /* unsure how to get this, investigate _ZN5CCode7GetTextEv? */
+    void *padding1[5];
+    int padding2[14];
+	const char *m_name;
+} CCode;
+
+#if INTPTR_MAX == INT32_MAX
+static_assert(offsetof(CCode, m_name) == 0x5c, "Bad offset, check data/padding sizes.");
+#else
+static_assert(offsetof(CCode, m_name) == 0x80, "Bad offset, check data/padding sizes.");
+#endif
+
+static const int offsname = offsetof(CCode, m_name);
+
 typedef struct LLVMVars {
     char *pWad;
     int	nWadFileLength;
@@ -259,6 +279,8 @@ extern ABI_ATTR void (*_RefThing__dec)(void *ref);
 extern ABI_ATTR int (*Variable_BuiltIn_Find)(const char *name);
 extern ABI_ATTR int (*Code_Variable_Find_Slot_From_Name)(void *instance, const char *name);
 extern ABI_ATTR int (*Variable_FindName)(const char *name);
+extern ABI_ATTR long (*ExecuteIt)(void *self, void *other, void *code, RValue *args);
+extern ABI_ATTR long (*ExecuteIt_argc)(void *self, void *other, void *code, RValue *args, int argc);
 
 extern bionic_off_t *g_GameFileLength;
 extern char **g_pWorkingDirectory;
@@ -274,6 +296,9 @@ extern long long *g_GML_DeltaTime;
 extern int *the_numb;
 extern int *g_nInstanceVariables;
 extern void **g_pGlobal;
+extern int *g_TotalCodeBlocks;
+extern struct CCode **g_pFirstCode;
+extern int *g_ArgumentCount;
 extern RFunction **the_functions;
 extern uint32_t *g_IOFrameCount;
 extern uint8_t *_IO_ButtonDown;
@@ -306,4 +331,6 @@ void disable_depth();
 
 extern void YYCreateStringHelper(struct RValue *rval, const char *str);
 extern void YYThingDerefHelper(struct RValue *rval);
+extern const char *YYGetCStrHelper(struct RValue *rval, int idx);
+extern const char *YYCCodeName(struct CCode *code);
 extern int UsesRefStrings();

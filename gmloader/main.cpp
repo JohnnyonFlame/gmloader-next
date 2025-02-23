@@ -276,13 +276,6 @@ int main(int argc, char *argv[])
     RunnerJNILib::Startup(env, 0, apk_path_arg, save_dir_arg, pkg_dir_arg, 4, 0);
     setup_ended = 1;
 
-/*
-    run_lua(
-        "gml:show_debug_message(\"Testing built-in function calls\")\n"
-        "print(\"Can we fetch a global var?\", global.working_directory)\n"
-    );
-*/
-
     while (cont != 0 && cont != 2 && RunnerJNILib_MoveTaskToBackCalled == 0) {
         if (update_inputs(sdl_win) != 1)
             break;

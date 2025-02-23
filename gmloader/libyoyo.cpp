@@ -45,6 +45,10 @@ ABI_ATTR void (*_RefThing__dec)(void *ref) = NULL;
 ABI_ATTR int (*Variable_BuiltIn_Find)(const char *name) = NULL;
 ABI_ATTR int (*Code_Variable_Find_Slot_From_Name)(void *instance, const char *name) = NULL;
 ABI_ATTR int (*Variable_FindName)(const char *name) = NULL; /* Unavailable in GMS 1.4+, very old symbol */
+ABI_ATTR long (*ExecuteIt)(void *self, void *other, void *code, RValue *args) = NULL;
+ABI_ATTR long (*ExecuteIt_argc)(void *self, void *other, void *code, RValue *args, int argc) = NULL;
+
+
 bionic_off_t *g_GameFileLength = NULL; //android had 32bit off_t???
 char **g_pWorkingDirectory = NULL;
 char *g_fNoAudio = NULL;
@@ -58,6 +62,9 @@ long long *g_GML_DeltaTime = NULL;
 int *the_numb = NULL;
 int *g_nInstanceVariables = NULL;
 void **g_pGlobal = NULL;
+struct CCode **g_pFirstCode = NULL;
+int *g_TotalCodeBlocks = NULL;
+int *g_ArgumentCount = NULL;
 RFunction **the_functions = NULL;
 uint32_t *g_IOFrameCount = NULL;
 uint8_t *_IO_ButtonDown = NULL;
@@ -227,6 +234,9 @@ void patch_libyoyo(so_module *mod)
     ENSURE_SYMBOL(mod, the_functions, "the_functions");
     ENSURE_SYMBOL(mod, the_numb, "the_numb");
     ENSURE_SYMBOL(mod, g_pGlobal, "g_pGlobal");
+    ENSURE_SYMBOL(mod, g_pFirstCode, "g_pFirstCode");
+    ENSURE_SYMBOL(mod, g_TotalCodeBlocks, "g_TotalCodeBlocks");
+    ENSURE_SYMBOL(mod, g_ArgumentCount, "g_ArgumentCount");
     ENSURE_SYMBOL(mod, YYGetInt32, "_Z10YYGetInt32PK6RValuei");
     ENSURE_SYMBOL(mod, YYGetInt64, "_Z10YYGetInt64PK6RValuei");
     ENSURE_SYMBOL(mod, YYGetReal, "_Z9YYGetRealPK6RValuei");
@@ -244,6 +254,8 @@ void patch_libyoyo(so_module *mod)
     ENSURE_SYMBOL(mod, Variable_BuiltIn_Find, "_Z21Variable_BuiltIn_FindPKc", "_Z21Variable_BuiltIn_FindPc");
 
     // Versioned symbols
+    FIND_SYMBOL(mod, ExecuteIt, "_Z9ExecuteItP9CInstanceS0_P5CCodeP6RValue");
+    FIND_SYMBOL(mod, ExecuteIt_argc, "_Z9ExecuteItP9CInstanceS0_P5CCodeP6RValuei");
     FIND_SYMBOL(mod, MemoryManager__Free, "_ZN13MemoryManager4FreeEPv", "_ZN13MemoryManager4FreeEPKv");
     FIND_SYMBOL(mod, MemoryManager__Free_2, "_ZN13MemoryManager4FreeEPKvb");
 
@@ -388,4 +400,12 @@ void YYThingDerefHelper(RValue *rval)
         free(rval->rvalue.str);
         rval->kind = VALUE_UNSET;
     }
+}
+
+const char *YYGetCStrHelper(struct RValue *rval, int idx)
+{
+    if (UsesRefStrings())
+        return (const char *)rval[idx].rvalue.str->m_thing;
+    else
+        return (const char *)rval[idx].rvalue.str;
 }
