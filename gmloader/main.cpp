@@ -1,6 +1,8 @@
 #include <SDL2/SDL.h>
 #include <stdio.h>
+#include <string.h>
 #include <signal.h>
+#include <unistd.h>
 #include <zip.h>
 
 #include "platform.h"
@@ -13,6 +15,11 @@
 #include "libyoyo.h"
 #include "configuration.h"
 #include "texture.h"
+
+
+int relaunch_flag = 0;
+char *program_name = nullptr;
+const char* gc_workdir = nullptr;
 
 /*
       Don't touch this incantation. It serves no practical
@@ -103,25 +110,45 @@ static fs::path get_absolute_path(const char* path, fs::path work_dir){
 
 int main(int argc, char *argv[])
 {
+    // Store the program name from argv[0]
+    if (argc > 0 && argv[0]) {
+        program_name = argv[0];
+    } else 
+    {
+        fatal_error("Main: Could not determine program name from argv[0]\n");
+        return -1;
+    }
+
     gmloader_config.init_defaults();
 
     fs::path work_dir, config_file_path, save_dir, apk_path;
     work_dir = fs::canonical(fs::current_path()) / "";
 
-    if (argc > 2 && strcmp(argv[1], "-c") == 0) {
-        
-        config_file_path = work_dir / argv[2];
-
-        if(gmloader_config.parse_file(config_file_path.c_str()) < 0 ){
-            warning("Error while loading the config file\n");
+    // Check for -a (apk_path override) and -c (config file)
+    std::string override_apk_path;
+    for (int i = 1; i < argc; ++i) {
+        if (strcmp(argv[i], "-a") == 0 && i + 1 < argc) {
+            override_apk_path = argv[i + 1];
+            warning("Main: Using apk_path override from args: '%s'\n", override_apk_path.c_str());
+            i++; // Skip the value
         }
+        else if (strcmp(argv[i], "-c") == 0 && i + 1 < argc) {
+            config_file_path = work_dir / argv[i + 1];
+            if (gmloader_config.parse_file(config_file_path.c_str()) < 0) {
+                warning("Error while loading the config file\n");
+            }
+        }
+    }
 
+    // Apply apk_path override if provided
+    if (!override_apk_path.empty()) {
+        gmloader_config.apk_path = override_apk_path;
     }
 
     char platform_ov[32];
     strncpy(platform_ov, gmloader_config.force_platform.c_str(), sizeof(platform_ov) - 1);
     platform_ov[sizeof(platform_ov) - 1] = '\0';
-    
+
     std::unordered_map<std::string, int> platform_map = {
         {"os_unknown", os_unknown},
         {"os_windows", os_windows},
@@ -277,7 +304,7 @@ int main(int argc, char *argv[])
     RunnerJNILib::Startup(env, 0, apk_path_arg, save_dir_arg, pkg_dir_arg, 4, 0);
     setup_ended = 1;
 
-    while (cont != 0 && cont != 2 && RunnerJNILib_MoveTaskToBackCalled == 0) {
+    while (cont != 0 && cont != 2 && RunnerJNILib_MoveTaskToBackCalled == 0 && relaunch_flag == 0) {
         if (update_inputs(sdl_win) != 1)
             break;
         SDL_GetWindowSize(sdl_win, &w, &h);
@@ -289,6 +316,63 @@ int main(int argc, char *argv[])
     SDL_GL_DeleteContext(sdl_ctx);
     SDL_DestroyWindow(sdl_win);
     SDL_Quit();
+
+    // Check for relaunch
+    if (relaunch_flag && gc_workdir) {
+        warning("Main: Relaunch triggered. workdir='%s'\n", gc_workdir);
+
+        // Extract subfolder prefix from original apk_path (e.g., "assets/")
+        std::string orig_apk_path = gmloader_config.apk_path;
+        std::string prefix;
+        size_t last_slash = orig_apk_path.find_last_of('/');
+        if (last_slash != std::string::npos) {
+            prefix = orig_apk_path.substr(0, last_slash + 1); // Include the slash
+        }
+
+        // Remove leading and trailing slashes from gc_workdir (may or may not have any)
+        std::string workdir_clean = gc_workdir;
+        if (!workdir_clean.empty() && workdir_clean.front() == '/')
+            workdir_clean = workdir_clean.substr(1);
+        if (!workdir_clean.empty() && workdir_clean.back() == '/')
+            workdir_clean = workdir_clean.substr(0, workdir_clean.length() - 1);
+        std::string new_apk_path = prefix + workdir_clean;
+
+        // Check if the override is valid
+        bool use_override = (new_apk_path.find("..") == std::string::npos && !workdir_clean.empty());
+        if (use_override) {
+            gmloader_config.apk_path = new_apk_path;
+            warning("Main: Updated config: apk_path='%s', save_dir='%s'\n", 
+                    gmloader_config.apk_path.c_str(), gmloader_config.save_dir.c_str());
+        } else {
+            warning("Main: Ignoring override='%s' (workdir='%s'), using original apk_path='%s'\n", 
+                    new_apk_path.c_str(), gc_workdir, gmloader_config.apk_path.c_str());
+        }
+
+        // Relaunch: use -a only if override is valid, otherwise just -c
+        char apk_path_arg[1024];
+        char config_path_arg[1024];
+        char *argv_relaunch[6];
+        int arg_count = 0;
+        argv_relaunch[arg_count++] = program_name;
+        argv_relaunch[arg_count++] = (char*)"-c";
+        snprintf(config_path_arg, sizeof(config_path_arg), "%s", config_file_path.c_str());
+        argv_relaunch[arg_count++] = config_path_arg;
+        if (use_override) {
+            snprintf(apk_path_arg, sizeof(apk_path_arg), "%s", gmloader_config.apk_path.c_str());
+            argv_relaunch[arg_count++] = (char*)"-a";
+            argv_relaunch[arg_count++] = apk_path_arg;
+        }
+        argv_relaunch[arg_count] = nullptr;
+
+        warning("Main: Relaunching '%s' with apk_path='%s', save_dir='%s'\n", 
+                program_name, gmloader_config.apk_path.c_str(), gmloader_config.save_dir.c_str());
+        fflush(stdout);
+        fflush(stderr);
+        if (execv(program_name, argv_relaunch) == -1) {
+            fatal_error("Main: Failed to relaunch '%s': %s\n", program_name, strerror(errno));
+            return -1;
+        }
+    }
 
     return 0;
 }

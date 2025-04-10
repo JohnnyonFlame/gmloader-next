@@ -326,6 +326,9 @@ extern void **g_pGameFileBuffer;
 extern void **g_ppYYStackTrace;
 extern int *Extension_Main_number;
 
+extern const char *gc_workdir;
+extern int relaunch_flag;
+
 extern void patch_libyoyo(struct so_module *mod);
 extern void patch_input(struct so_module *mod);
 extern void patch_gamepad(struct so_module *mod);

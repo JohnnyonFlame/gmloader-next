@@ -1,12 +1,15 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdarg.h>
+#include <string.h>
+#include <string>
+#include <stdlib.h>
 
-#include "configuration.h"
 #include "platform.h"
 #include "so_util.h"
 #include "libyoyo.h"
 #include "stdlib.h"
+#include "configuration.h"
 
 ABI_ATTR create_async_event_with_ds_map_t CreateAsynEventWithDSMap = NULL;
 ABI_ATTR create_ds_map_t CreateDsMap = NULL;
@@ -190,6 +193,60 @@ ABI_ATTR static void video_open_reimpl(RValue *ret, void *self, void *other, int
     }
 }
 
+// Implementation of game_change which is not available for android normally
+//  Takes two arguments: work_dir and launch_params (example: "/chapter1_windows" "-game data.win")
+//  https://manual.gamemaker.io/beta/en/GameMaker_Language/GML_Reference/General_Game_Control/game_change.htm
+ABI_ATTR void game_change_reimpl(RValue *ret, void *self, void *other, int argc, RValue *args) {
+    char buffer[1024];
+    int len = snprintf(buffer, sizeof(buffer), "game_change(): ");
+    for (int i = 0; i < argc && len < sizeof(buffer); i++) {
+        const char *arg = (args[i].kind == VALUE_STRING && args[i].rvalue.str && args[i].rvalue.str->m_thing)
+                          ? (char*)args[i].rvalue.str->m_thing
+                          : "INVALID";
+        len += snprintf(buffer + len, sizeof(buffer) - len, "%s%s", i > 0 ? ", " : "", arg);
+    }
+    warning("%s\n", buffer);
+
+    if (ret) {
+        ret->kind = VALUE_BOOL;
+        ret->rvalue.val = 0;
+    }
+
+    if (argc < 2) {
+        warning("game_change(): Requires at least two arguments (workdir and params)\n");
+        return;
+    }
+
+    for (int i = 0; i < argc; i++) {
+        if (args[i].kind != VALUE_STRING || !args[i].rvalue.str || !args[i].rvalue.str->m_thing) {
+            warning("game_change(): Argument %d is not a valid string\n", i);
+            return;
+        }
+    }
+
+    const char *workdir = static_cast<const char*>(args[0].rvalue.str->m_thing);
+    gc_workdir = strdup(workdir);
+    if (!gc_workdir) {
+        warning("game_change(): Failed to duplicate workdir\n");
+        return;
+    }
+
+    std::string sub_path = gc_workdir;
+    if (!sub_path.empty() && sub_path.back() != '/') {
+        sub_path += '/';
+    }
+
+    std::string full_path = gmloader_config.save_dir + sub_path;
+    warning("game_change(): Resolved game path: '%s'\n", full_path.c_str());
+
+    relaunch_flag = 1;
+
+    if (ret) {
+        ret->kind = VALUE_BOOL;
+        ret->rvalue.val = 1;
+    }
+}
+
 void patch_libyoyo(so_module *mod)
 {
     // Load all of the native symbols referenced
@@ -312,6 +369,7 @@ void patch_libyoyo(so_module *mod)
 
     Function_Add("window_handle", window_handle, 0, 1);
     Function_Add("video_open", video_open_reimpl, 1, 1);
+    Function_Add("game_change", game_change_reimpl, 2, 0);
 
     so_symbol_fix_ldmia(mod, "_Z11Shader_LoadPhjS_");
 }
