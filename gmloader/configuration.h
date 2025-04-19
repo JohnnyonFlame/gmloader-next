@@ -13,6 +13,7 @@ struct gml_config {
     bool show_cursor;
     bool disable_controller;
     bool disable_depth;
+    bool disable_extensions;
     bool disable_rumble;
     float rumble_scale;
     bool disable_texhack;
