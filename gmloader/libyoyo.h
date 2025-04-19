@@ -63,9 +63,10 @@ typedef struct Gamepad {
 	double buttons[16];
 	double deadzone;
 	double axis[4];
+	double motors[2];
 
 	Gamepad()
-	: is_available(0), was_available(0), buttons{0}, deadzone(0.1), axis{0}
+	: is_available(0), was_available(0), buttons{0}, deadzone(0.1), axis{0}, motors{}
 	{ /* ... */ }
 } Gamepad;
 

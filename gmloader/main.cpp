@@ -223,7 +223,7 @@ int main(int argc, char *argv[])
     printf("apk_path %s save_dir %s pkg_dir %s\n", apk_path_arg->str, save_dir_arg->str, pkg_dir_arg->str);
 
     // Initialize SDL with video, audio, joystick, and controller support
-    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER) != 0) {
+    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER | SDL_INIT_HAPTIC) != 0) {
         fatal_error("SDL could not initialize! SDL_Error: %s\n", SDL_GetError());
         return -1;
     }

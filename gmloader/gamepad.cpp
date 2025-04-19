@@ -205,6 +205,18 @@ ABI_ATTR void gamepad_button_value(RValue *ret, void *self, void *other, int arg
 
 ABI_ATTR void gamepad_set_vibration(RValue *ret, void *self, void *other, int argc, RValue *args)
 {
+    int id = YYGetInt32(args, 0);
+    double left = YYGetReal(args, 1);
+    double right = YYGetReal(args, 2);
+
+    if (!IS_CONTROLLER_BOUNDS) {
+        ret->rvalue.val = 0.0f;
+        return;
+    }
+
+    Gamepad *gamepad = &yoyo_gamepads[id];
+    gamepad->motors[0] = left;
+    gamepad->motors[1] = right;
 }
 
 ABI_ATTR void gamepad_set_axis_deadzone(RValue *ret, void *self, void *other, int argc, RValue *args)
