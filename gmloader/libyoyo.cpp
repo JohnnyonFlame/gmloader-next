@@ -88,7 +88,10 @@ uint8_t prev_kbd_state[N_KEYS] = {};
 uint8_t cur_keys[N_KEYS] = {};
 
 static const char *fake_functs[] = {
+    // Other stubs
     "object_set_collisions",
+
+    // PSN Stubs
     "psn_show_error_dialog",
     "psn_check_free_space",
     "psn_get_leaderboard_score_range",
@@ -109,14 +112,6 @@ static const char *fake_functs[] = {
     "psn_name_for_user",
     "psn_default_user",
     "psn_user_for_pad",
-    "steam_utils_is_steam_running_on_steam_deck",
-    "steam_update",
-    "steam_is_screenshot_requested",
-    "steam_send_screenshot",
-    "steam_initialised",
-    "steam_stats_ready",
-    "steam_get_achievement",
-    "steam_set_achievement",
 };
 
 double FORCE_PLATFORM = os_android;
@@ -171,24 +166,6 @@ ABI_ATTR void force_platform_type_gms2(void *self, int n, RValue *args)
     WARN_STUB;
     args[0].kind = VALUE_REAL;
     args[0].rvalue.val = FORCE_PLATFORM;
-}
-
-ABI_ATTR static void steam_utils_is_steam_running_on_steam_deck(RValue *ret, void *self, void *other, int argc, RValue *args)
-{
-    ret->kind = VALUE_REAL;
-    ret->rvalue.val = 0;
-}
-
-ABI_ATTR static void steam_initialised(RValue *ret, void *self, void *other, int argc, RValue *args)
-{
-    ret->kind = VALUE_REAL;
-    ret->rvalue.val = 0;
-}
-
-ABI_ATTR static void steam_stats_ready(RValue *ret, void *self, void *other, int argc, RValue *args)
-{
-    ret->kind = VALUE_REAL;
-    ret->rvalue.val = 0;
 }
 
 ABI_ATTR static void window_handle(RValue *ret, void *self, void *other, int argc, RValue *args)

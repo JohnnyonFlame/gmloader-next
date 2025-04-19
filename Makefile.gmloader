@@ -70,6 +70,7 @@ JNI_OBJS:=$(patsubst %.cpp,build/%.cpp.o,$(wildcard jni/classes/*.cpp))
 JNI_OBJS+=$(patsubst %.cpp,build/%.cpp.o,$(wildcard jni/*.cpp))
 GMLOADER_OBJS:=$(patsubst %.cpp,build/%.cpp.o,$(wildcard gmloader/*.cpp))
 GMLOADER_OBJS+=$(patsubst %.cpp,build/%.cpp.o,$(wildcard gmloader/classes/*.cpp))
+GMLOADER_OBJS+=$(patsubst %.cpp,build/%.cpp.o,$(wildcard gmloader/stubs/*.cpp))
 
 GENERIC_OBJ:=\
 	${LOADER_OBJS} \

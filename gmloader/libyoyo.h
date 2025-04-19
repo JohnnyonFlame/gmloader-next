@@ -333,6 +333,7 @@ extern void patch_mouse(struct so_module *mod);
 extern void patch_fmod(struct so_module *mod);
 extern void patch_display_mouse_lock(struct so_module *mod);
 extern void patch_gameframe(struct so_module *mod);
+extern void patch_steam(struct so_module *mod);
 extern void patch_texture(struct so_module *mod);
 extern void patch_lua(struct so_module* mod);
 extern void run_lua(const char *code);
