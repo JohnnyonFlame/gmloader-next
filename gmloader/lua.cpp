@@ -1,3 +1,5 @@
+#ifdef USE_LUA
+
 #include <string.h>
 #include <stdlib.h>
 #include <alloca.h>
@@ -529,3 +531,12 @@ void patch_lua(struct so_module* mod)
     hook_symbol(mod, "_Z12Code_ExecuteP9CInstanceS0_P5CCodeP6RValue", (uintptr_t)&Code_Execute_Hook, 1);
     hook_symbol(mod, "_Z12Code_ExecuteP9CInstanceS0_P5CCodeP6RValuei", (uintptr_t)&Code_Execute_Hook_flags, 1);
 }
+
+#else
+
+void patch_lua(struct so_module* mod)
+{
+    /* do nothing */
+}
+
+#endif

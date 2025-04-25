@@ -53,6 +53,11 @@ ifeq (${USE_FMOD},1)
 	-include 3rdparty/FMOD_SDL.mk
 endif
 
+ifeq (${USE_LUA},1)
+	CFLAGS+=-DUSE_LUA=1
+	-include 3rdparty/lua.mk
+endif
+
 # Used by generate_libc.py to generate the function tables that are exported to the
 # application.
 LIBC_SRCS=$(filter-out $(if ${exclude_file1},,thunks/libc/libc_table.cpp),$(wildcard thunks/libc/*.cpp))
@@ -82,7 +87,6 @@ clean:
 # Include subprojects for 3rdparty libraries and their relevant flags
 -include 3rdparty/libbsd.mk
 -include 3rdparty/libzip.mk
--include 3rdparty/lua.mk
 
 # By repeating the generated headers on this rule, we force them to start building
 # as soon as possible, so libc_table.cpp isn't waiting forever.
