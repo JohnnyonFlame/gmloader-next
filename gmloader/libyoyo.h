@@ -321,6 +321,7 @@ extern void patch_input(struct so_module *mod);
 extern void patch_gamepad(struct so_module *mod);
 extern void patch_mouse(struct so_module *mod);
 extern void patch_fmod(struct so_module *mod);
+extern void patch_display_mouse_lock(struct so_module *mod);
 extern void patch_gameframe(struct so_module *mod);
 extern void patch_texture(struct so_module *mod);
 extern void patch_lua(struct so_module* mod);

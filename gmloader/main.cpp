@@ -201,6 +201,7 @@ int main(int argc, char *argv[])
     patch_gamepad(&libyoyo);
     patch_mouse(&libyoyo);
     patch_fmod(&libyoyo);
+    patch_display_mouse_lock(&libyoyo);
     patch_gameframe(&libyoyo);
     patch_texture(&libyoyo);
     patch_lua(&libyoyo);
