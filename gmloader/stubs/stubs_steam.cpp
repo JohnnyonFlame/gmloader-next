@@ -32,12 +32,12 @@ static const char* steam_stubs[] = {
     // Overlay
     "steam_is_overlay_enabled",
     "steam_is_overlay_activated",
-    //"steam_activate_overlay",
-    //"steam_activate_overlay_browser",
-    //"steam_activate_overlay_store",
-    //"steam_activate_overlay_user",
-    //"steam_set_overlay_notification_inset",
-    //"steam_set_overlay_notification_position",
+    "steam_activate_overlay",
+    "steam_activate_overlay_browser",
+    "steam_activate_overlay_store",
+    "steam_activate_overlay_user",
+    "steam_set_overlay_notification_inset",
+    "steam_set_overlay_notification_position",
 
     // Leaderboards
     //"steam_create_leaderboard",
