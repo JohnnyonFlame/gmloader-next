@@ -19,7 +19,7 @@ extern "C" {
 #define GMLUA_HOOKED_FLAG 0x10
 #define GMLUA_INSTANCE_META "$MT_inst"
 #define GMLUA_INSTANCE_VAR_REG "$var_reg"
-#define GMLUA_HOOK_TABLE "$hook_tab"
+#define GMLUA_HOOK_TABLE "$script_tab"
 
 static lua_State *gLua = NULL;
 
@@ -120,9 +120,9 @@ static void lua_pushcinstance(lua_State *L, void *inst) {
 static int ffi_lua_to_rfunction(lua_State *L)
 {
     int top = lua_gettop(L);
-    int nargs = top - 1;
     routine_t code = (routine_t)lua_topointer(L, lua_upvalueindex(1));
-    int _args = lua_tointeger(L, lua_upvalueindex(2));
+    // int _args = lua_tointeger(L, lua_upvalueindex(2));
+    int nargs = top - 1;
     
     // Marshall types from the LUA Stack into GML args list
     RValue retval = {.kind = VALUE_UNSET};
@@ -149,6 +149,51 @@ static int ffi_lua_to_rfunction(lua_State *L)
 
     int r = lua_pushrvalue(L, &retval, 0);
     deref_rvalue(&retval, 0);
+    return r;
+}
+
+static int ffi_lua_to_script(lua_State *L)
+{
+    int top = lua_gettop(L);
+    CCode *code = (CCode *)lua_touserdata(L, lua_upvalueindex(1));
+    int nargs = top - 1;
+    
+    // Marshall types from the LUA Stack into GML args list
+    RValue retval = {.kind = VALUE_UNSET};
+    RValue *args = NULL;
+    if (nargs > 0)
+    {
+        int argi = 0;
+        args = (RValue *)alloca(sizeof(RValue) * nargs);
+        for (int i = 2; i <= top; i++)
+        {
+            int res = lua_torvalue(L, i, args, argi++);
+            if (res < 0) {
+                printf("Failure marshalling script args!\n");
+                return res;
+            }
+        }
+    }
+
+    *g_ArgumentCount = nargs;
+    *Argument = args;
+
+    int k = code->m_kind;
+    code->m_kind &= ~GMLUA_HOOKED_FLAG;
+
+    if (ExecuteIt_flags)
+        ExecuteIt_flags(NULL, NULL, code, &retval, 0);
+    else
+        ExecuteIt(NULL, NULL, code, &retval);
+    
+    code->m_kind = k;
+    // Free any strings that might've been allocated and now are no longer needed.
+    for (int i = 0; i < nargs; i++)
+    {
+        deref_rvalue(args, i);
+    }
+
+    int r = lua_pushrvalue(L, &retval, 0);
     return r;
 }
 
@@ -234,6 +279,28 @@ static void register_gml_funcs(lua_State *L)
     }
 
     lua_setglobal(L, "gml");
+}
+
+static void register_game_code(lua_State *L)
+{
+    lua_newtable(L);
+
+    struct CCode *code = *g_pFirstCode;
+    for (int i = 0; i < *g_TotalCodeBlocks; i++)
+    {
+        if (!code)
+            break;
+            
+        const char *m_name = code->m_name;
+        lua_pushstring(L, m_name); /* function name (code[name] = closure) */
+        lua_pushlightuserdata(L, code); /* function code */
+        lua_pushcclosure(L, ffi_lua_to_script, 1);
+        lua_settable(L, -3);
+
+        code = code->m_next;
+    }
+
+    lua_setglobal(L, "code");
 }
 
 /*
@@ -377,10 +444,12 @@ void initialize_lua()
     luaL_openlibs(gLua);
 
     register_gml_funcs(gLua);
+    register_game_code(gLua);
     register_cinstance(gLua);
     register_utils_api(gLua);
 
     lua_atpanic(gLua, lua_panic);
+    warning("-- LUA Initialization performed.\n");
 }
 
 void run_lua(const char *code)
@@ -407,16 +476,17 @@ ABI_ATTR static void do_lua_init_sequence(int arg1, char arg2)
     StartRoom(arg1, arg2);
 }
 
-ABI_ATTR long Code_Execute_Hook(void *self, void *other, struct CCode *code, RValue *args, int argc)
+ABI_ATTR long Code_Execute_Hook(void *self, void *other, struct CCode *code, RValue *ret)
 {
-    return ExecuteIt(self, other, code, args);
+    return ExecuteIt(self, other, code, ret);
 }
 
-ABI_ATTR long Code_Execute_Hook_argc(void *self, void *other, struct CCode *code, RValue *args, int argc)
+ABI_ATTR long Code_Execute_Hook_flags(void *self, void *other, struct CCode *code, RValue *ret, int flags)
 {
 
     if (gLua && ((code->m_kind & GMLUA_HOOKED_FLAG) == GMLUA_HOOKED_FLAG))
     {
+        int argc = *g_ArgumentCount;
         lua_getfield(gLua, LUA_REGISTRYINDEX, GMLUA_HOOK_TABLE);
         lua_pushlightuserdata(gLua, (void*)code);
         lua_gettable(gLua, -2);
@@ -426,7 +496,7 @@ ABI_ATTR long Code_Execute_Hook_argc(void *self, void *other, struct CCode *code
 
         for (int i = 0; i < argc; i++)
         {
-            lua_pushrvalue(gLua, args, i);
+            lua_pushrvalue(gLua, *Argument, i);
         }
 
         if (lua_pcall(gLua, argc+2, 0, 0))
@@ -441,7 +511,7 @@ ABI_ATTR long Code_Execute_Hook_argc(void *self, void *other, struct CCode *code
         return 0;
     }
 
-    return ExecuteIt_argc(self, other, code, args, argc);
+    return ExecuteIt_flags(self, other, code, ret, flags);
 }
 
 void patch_lua(struct so_module* mod)
@@ -457,5 +527,5 @@ void patch_lua(struct so_module* mod)
     memcpy((void*)StartRoom_prologue, (void*)StartRoom, sizeof(StartRoom_prologue));
     hook_symbol(mod, "_Z9StartRoomib", (uintptr_t)&do_lua_init_sequence, 1);
     hook_symbol(mod, "_Z12Code_ExecuteP9CInstanceS0_P5CCodeP6RValue", (uintptr_t)&Code_Execute_Hook, 1);
-    hook_symbol(mod, "_Z12Code_ExecuteP9CInstanceS0_P5CCodeP6RValuei", (uintptr_t)&Code_Execute_Hook_argc, 1);
+    hook_symbol(mod, "_Z12Code_ExecuteP9CInstanceS0_P5CCodeP6RValuei", (uintptr_t)&Code_Execute_Hook_flags, 1);
 }

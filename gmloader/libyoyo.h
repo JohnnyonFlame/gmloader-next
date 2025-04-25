@@ -107,6 +107,12 @@ typedef struct CThread {
     struct BIONIC_Mutex * m_pTermMutex;
 } CThread;
 
+typedef struct YYFunc
+{
+	const char *name;
+	RValue *(*procedure)(struct CInstance *self, struct CInstance *other, RValue *ret, int count, RValue** args);
+} YYFunc;
+
 // TODO:: track down more usage of this structure and
 // document it's internals a bit better.
 typedef struct CCode {
@@ -117,6 +123,8 @@ typedef struct CCode {
     void *padding1[5];
     int padding2[14];
 	const char *m_name;
+	int m_index; /* See how this is passed around, e.g. to CProfiler */
+	const YYFunc *func;
 } CCode;
 
 #if INTPTR_MAX == INT32_MAX
@@ -279,8 +287,8 @@ extern ABI_ATTR void (*_RefThing__dec)(void *ref);
 extern ABI_ATTR int (*Variable_BuiltIn_Find)(const char *name);
 extern ABI_ATTR int (*Code_Variable_Find_Slot_From_Name)(void *instance, const char *name);
 extern ABI_ATTR int (*Variable_FindName)(const char *name);
-extern ABI_ATTR long (*ExecuteIt)(void *self, void *other, void *code, RValue *args);
-extern ABI_ATTR long (*ExecuteIt_argc)(void *self, void *other, void *code, RValue *args, int argc);
+extern ABI_ATTR long (*ExecuteIt)(void *self, void *other, void *code, RValue *ret);
+extern ABI_ATTR long (*ExecuteIt_flags)(void *self, void *other, void *code, RValue *ret, int flags);
 
 extern bionic_off_t *g_GameFileLength;
 extern char **g_pWorkingDirectory;
@@ -299,6 +307,7 @@ extern void **g_pGlobal;
 extern int *g_TotalCodeBlocks;
 extern struct CCode **g_pFirstCode;
 extern int *g_ArgumentCount;
+extern RValue **Argument;
 extern RFunction **the_functions;
 extern uint32_t *g_IOFrameCount;
 extern uint8_t *_IO_ButtonDown;

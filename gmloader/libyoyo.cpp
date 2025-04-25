@@ -46,7 +46,7 @@ ABI_ATTR int (*Variable_BuiltIn_Find)(const char *name) = NULL;
 ABI_ATTR int (*Code_Variable_Find_Slot_From_Name)(void *instance, const char *name) = NULL;
 ABI_ATTR int (*Variable_FindName)(const char *name) = NULL; /* Unavailable in GMS 1.4+, very old symbol */
 ABI_ATTR long (*ExecuteIt)(void *self, void *other, void *code, RValue *args) = NULL;
-ABI_ATTR long (*ExecuteIt_argc)(void *self, void *other, void *code, RValue *args, int argc) = NULL;
+ABI_ATTR long (*ExecuteIt_flags)(void *self, void *other, void *code, RValue *args, int argc) = NULL;
 
 
 bionic_off_t *g_GameFileLength = NULL; //android had 32bit off_t???
@@ -65,6 +65,7 @@ void **g_pGlobal = NULL;
 struct CCode **g_pFirstCode = NULL;
 int *g_TotalCodeBlocks = NULL;
 int *g_ArgumentCount = NULL;
+RValue **Argument = NULL;
 RFunction **the_functions = NULL;
 uint32_t *g_IOFrameCount = NULL;
 uint8_t *_IO_ButtonDown = NULL;
@@ -237,6 +238,7 @@ void patch_libyoyo(so_module *mod)
     ENSURE_SYMBOL(mod, g_pFirstCode, "g_pFirstCode");
     ENSURE_SYMBOL(mod, g_TotalCodeBlocks, "g_TotalCodeBlocks");
     ENSURE_SYMBOL(mod, g_ArgumentCount, "g_ArgumentCount");
+    ENSURE_SYMBOL(mod, Argument, "Argument");
     ENSURE_SYMBOL(mod, YYGetInt32, "_Z10YYGetInt32PK6RValuei");
     ENSURE_SYMBOL(mod, YYGetInt64, "_Z10YYGetInt64PK6RValuei");
     ENSURE_SYMBOL(mod, YYGetReal, "_Z9YYGetRealPK6RValuei");
@@ -252,10 +254,9 @@ void patch_libyoyo(so_module *mod)
     ENSURE_SYMBOL(mod, Variable_SetValue_Direct, "_Z24Variable_SetValue_DirectP12YYObjectBaseiiP6RValue", "_Z24Variable_SetValue_DirectP9CInstanceiiP6RValue");
     ENSURE_SYMBOL(mod, Code_Function_GET_the_function, "_Z30Code_Function_GET_the_functioniPPKcPPvPi", "_Z30Code_Function_GET_the_functioniPPKcPPvPiS4_", "_Z30Code_Function_GET_the_functioniPPcPPvPiS3_");
     ENSURE_SYMBOL(mod, Variable_BuiltIn_Find, "_Z21Variable_BuiltIn_FindPKc", "_Z21Variable_BuiltIn_FindPc");
-
     // Versioned symbols
     FIND_SYMBOL(mod, ExecuteIt, "_Z9ExecuteItP9CInstanceS0_P5CCodeP6RValue");
-    FIND_SYMBOL(mod, ExecuteIt_argc, "_Z9ExecuteItP9CInstanceS0_P5CCodeP6RValuei");
+    FIND_SYMBOL(mod, ExecuteIt_flags, "_Z9ExecuteItP9CInstanceS0_P5CCodeP6RValuei");
     FIND_SYMBOL(mod, MemoryManager__Free, "_ZN13MemoryManager4FreeEPv", "_ZN13MemoryManager4FreeEPKv");
     FIND_SYMBOL(mod, MemoryManager__Free_2, "_ZN13MemoryManager4FreeEPKvb");
 
