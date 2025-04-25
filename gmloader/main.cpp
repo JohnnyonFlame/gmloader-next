@@ -3,7 +3,6 @@
 #include <signal.h>
 #include <zip.h>
 
-#include "lua.h"
 #include "platform.h"
 #include "so_util.h"
 #include "io_util.h"
