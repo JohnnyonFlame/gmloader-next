@@ -183,8 +183,8 @@ ABI_ATTR static void video_open_reimpl(RValue *ret, void *self, void *other, int
     if (CreateAsynEventWithDSMap != NULL && CreateDsMap != NULL && dsMapAddString != NULL) {
         int ds_map = CreateDsMap(0);
         dsMapAddString(ds_map, "type", "video_end");
-        if (argc > 0 && args[0].kind == VALUE_STRING && args[0].rvalue.str && args[0].rvalue.str->m_thing) {
-            dsMapAddString(ds_map, "path", static_cast<const char*>(args[0].rvalue.str->m_thing));
+        if (argc > 0 && args[0].kind == VALUE_STRING) {
+            dsMapAddString(ds_map, "path", YYGetCStrHelper(args, 0));
         }
         CreateAsynEventWithDSMap(ds_map, 70);
     }
