@@ -166,102 +166,92 @@ ABI_ATTR off_t AAsset_seek_impl(void* asset_ptr, off_t offset, int whence)
     AAsset_impl* asset = (AAsset_impl*)asset_ptr;
     asset->persistent_read = true;
     
-    if (!asset) {
+    if (!asset || !asset->file) {
         fatal_error("[AAsset] Cannot seek NULL asset.\n");
         return -1;
     }
 
-    // Get file size for validation
-    zip_stat_t stt = {};
-    zip_stat_init(&stt);
-    if (zip_stat_index(asset->mgr->apk, asset->index, ZIP_STAT_SIZE, &stt) == -1) {
-        fatal_error("[AAsset] Cannot get file size for index %ld.\n", asset->index);
-        return -1;
-    }
-    off_t file_size = stt.size;
-
-    // If file is open, ensure it matches the current index
-    if (asset->file) {
-        zip_file_t* new_file = zip_fopen_index(asset->mgr->apk, asset->index, ZIP_FL_UNCHANGED);
-        if (!new_file || new_file != asset->file) {
-            fatal_error("[AAsset] File handle mismatch, resetting (index = %ld)\n", asset->index);
-            zip_fclose(asset->file);
-            asset->file = NULL;
-            asset->current_offset = 0;  // Reset offset on mismatch
-        } else {
-            zip_fclose(new_file);  // Close temp handle, we don’t need it
+    if (zip_file_is_seekable(asset->file))
+    {
+        if (zip_fseek(asset->file, offset, whence) == -1)
+        {
+            warning("[AAsset] Failed to seek seekable file!\n");
         }
+        
+        return zip_ftell(asset->file);
     }
+    else
+    {
+        // Get file size for validation
+        zip_stat_t stt = {};
+        zip_stat_init(&stt);
+        if (zip_stat_index(asset->mgr->apk, asset->index, ZIP_STAT_SIZE, &stt) == -1) {
+            fatal_error("[AAsset] Cannot get file size for index %ld.\n", asset->index);
+            return -1;
+        }
 
-    // Open file if not already open
-    if (!asset->file) {
+        off_t file_size = stt.size;
+
+        // Calculate new offset
+        off_t new_offset;
+        switch (whence) {
+            case SEEK_SET:
+                new_offset = offset;
+                break;
+            case SEEK_CUR:
+                new_offset = asset->current_offset + offset;
+                break;
+            case SEEK_END:
+                new_offset = file_size + offset;
+                break;
+            default:
+                warning("[AAsset] invalid whence value %d\n", whence);
+                return -1;
+        }
+
+        // Validate new offset
+        if (new_offset < 0 || new_offset > file_size) {
+            fatal_error("[AAsset] Seek offset %ld out of bounds (size=%ld)\n", new_offset, file_size);
+            return -1;
+        }
+
+        // libzip doesn't support direct seeking, so we need to:
+        // 1. Close the current file handle
+        // 2. Reopen and read/skip to the desired position
+        if (asset->file) {
+            zip_fclose(asset->file);
+        }
+
+        // Reopen the file
         asset->file = zip_fopen_index(asset->mgr->apk, asset->index, ZIP_FL_UNCHANGED);
         if (!asset->file) {
-            fatal_error("Cannot open file for seeking (index = %ld)\n", asset->index);
+            fatal_error("Cannot reopen file for seeking (index = %ld)\n", asset->index);
             return -1;
         }
-        asset->current_offset = 0;
-    }
 
-    // Calculate new offset
-    off_t new_offset;
-    switch (whence) {
-        case SEEK_SET:
-            new_offset = offset;
-            break;
-        case SEEK_CUR:
-            new_offset = asset->current_offset + offset;
-            break;
-        case SEEK_END:
-            new_offset = file_size + offset;
-            break;
-        default:
-            warning("[AAsset] invalid whence value %d\n", whence);
-            return -1;
-    }
-
-    // Validate new offset
-    if (new_offset < 0 || new_offset > file_size) {
-        fatal_error("[AAsset] Seek offset %ld out of bounds (size=%ld)\n", new_offset, file_size);
-        return -1;
-    }
-
-    // libzip doesn't support direct seeking, so we need to:
-    // 1. Close the current file handle
-    // 2. Reopen and read/skip to the desired position
-    if (asset->file) {
-        zip_fclose(asset->file);
-    }
-
-    // Reopen the file
-    asset->file = zip_fopen_index(asset->mgr->apk, asset->index, ZIP_FL_UNCHANGED);
-    if (!asset->file) {
-        fatal_error("Cannot reopen file for seeking (index = %ld)\n", asset->index);
-        return -1;
-    }
-
-    // If not seeking to start, skip bytes to reach target position
-    if (new_offset > 0) {
-        char buffer[4096];
-        off_t remaining = new_offset;
-        
-        while (remaining > 0) {
-            size_t to_read = remaining < sizeof(buffer) ? remaining : sizeof(buffer);
-            zip_int64_t nread = zip_fread(asset->file, buffer, to_read);
+        // If not seeking to start, skip bytes to reach target position
+        if (new_offset > 0) {
+            char buffer[4096];
+            off_t remaining = new_offset;
             
-            if (nread <= 0) {
-                fatal_error("[AAsset] Failed to seek to position %ld\n", new_offset);
-                zip_fclose(asset->file);
-                asset->file = NULL;
-                return -1;
+            while (remaining > 0) {
+                size_t to_read = remaining < sizeof(buffer) ? remaining : sizeof(buffer);
+                zip_int64_t nread = zip_fread(asset->file, buffer, to_read);
+                
+                if (nread <= 0) {
+                    fatal_error("[AAsset] Failed to seek to position %ld\n", new_offset);
+                    zip_fclose(asset->file);
+                    asset->file = NULL;
+                    return -1;
+                }
+                remaining -= nread;
             }
-            remaining -= nread;
         }
-    }
 
-    // Update the tracked offset and return it
-    asset->current_offset = new_offset;
-    return new_offset;
+        // Update the tracked offset and return it
+        asset->current_offset = new_offset;
+        return new_offset;
+    }
 }
 
 DynLibFunction symtable_zlib[] = {
