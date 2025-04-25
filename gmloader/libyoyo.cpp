@@ -197,15 +197,15 @@ ABI_ATTR static void video_open_reimpl(RValue *ret, void *self, void *other, int
 //  Takes two arguments: work_dir and launch_params (example: "/chapter1_windows" "-game data.win")
 //  https://manual.gamemaker.io/beta/en/GameMaker_Language/GML_Reference/General_Game_Control/game_change.htm
 ABI_ATTR void game_change_reimpl(RValue *ret, void *self, void *other, int argc, RValue *args) {
-    char buffer[1024];
-    int len = snprintf(buffer, sizeof(buffer), "game_change(): ");
-    for (int i = 0; i < argc && len < sizeof(buffer); i++) {
-        const char *arg = (args[i].kind == VALUE_STRING && args[i].rvalue.str && args[i].rvalue.str->m_thing)
-                          ? (char*)args[i].rvalue.str->m_thing
-                          : "INVALID";
-        len += snprintf(buffer + len, sizeof(buffer) - len, "%s%s", i > 0 ? ", " : "", arg);
+    std::string buffer = "game_change(): ";
+    for (int i = 0; i < argc; i++) {
+        const char *arg = (args[i].kind == VALUE_STRING) ? YYGetCStrHelper(args, i) : "INVALID";
+        if (i > 0)
+            buffer += ", ";
+        buffer += arg;
     }
-    warning("%s\n", buffer);
+
+    warning("%s\n", buffer.c_str());
 
     if (ret) {
         ret->kind = VALUE_BOOL;
@@ -224,14 +224,13 @@ ABI_ATTR void game_change_reimpl(RValue *ret, void *self, void *other, int argc,
         }
     }
 
-    const char *workdir = static_cast<const char*>(args[0].rvalue.str->m_thing);
-    gc_workdir = strdup(workdir);
+    gc_workdir = strdup(YYGetCStrHelper(args, 0));
     if (!gc_workdir) {
         warning("game_change(): Failed to duplicate workdir\n");
         return;
     }
 
-    std::string sub_path = gc_workdir;
+    std::string sub_path(gc_workdir);
     if (!sub_path.empty() && sub_path.back() != '/') {
         sub_path += '/';
     }
