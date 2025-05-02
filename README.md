@@ -67,25 +67,20 @@ GMLoader-next can load a json formatted configuration file using the `-c` option
 **gmloader.json**:
 ```json
 {
-    "save_dir" : "gamedata",
-    "apk_path" : "my_game.apk",
+    "save_dir" : "saves",
+    "apk_path" : "mygame.apk",
     "show_cursor" : false,
     "disable_controller" : false,
     "disable_depth" : false,
-    "force_platform" : "os_windows"
+	"disable_extensions" : false,
+	"disable_joystick" : true,
+    "disable_rumble" : false,
+	"rumble_scale" : 1.0,
+    "force_platform" : "os_android"
 }
 ```
 
-When no configuration file is present the default values are:
-
-| Parameter name     | Default value |
-|--------------------|---------------|
-| save_dir           | ./            |
-| apk_path           | game.apk      |
-| show_cursor        | true          |
-| disable_controller | false         |
-| disable_depth      | false         |
-| force_platform     | os_android    |
+When no configuration file is present the default values are as above.
 
 Supported values for force_platform are:
 - os_unknown
