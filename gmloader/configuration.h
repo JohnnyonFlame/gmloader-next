@@ -14,9 +14,10 @@ struct gml_config {
     bool disable_controller;
     bool disable_depth;
     bool disable_extensions;
+    bool disable_joystick;
     bool disable_rumble;
-    float rumble_scale;
     bool disable_texhack;
+    float rumble_scale;
     std::string force_platform;
 
     friend void from_json(const json& j, gml_config& c);

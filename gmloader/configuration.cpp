@@ -12,9 +12,10 @@ void from_json(const json& j, gml_config& c) {
     get_if_exists("disable_controller", disable_controller);
     get_if_exists("disable_depth", disable_depth);
     get_if_exists("disable_extensions", disable_extensions);
+    get_if_exists("disable_joystick", disable_joystick);
     get_if_exists("disable_rumble", disable_rumble);
-    get_if_exists("rumble_scale", rumble_scale);
     get_if_exists("disable_texhack", disable_texhack);
+    get_if_exists("rumble_scale", rumble_scale);
     get_if_exists("force_platform", force_platform);
 }
 
@@ -25,9 +26,10 @@ void gml_config::init_defaults(){
     disable_controller = false;
     disable_depth = false;
     disable_extensions = true;
+    disable_joystick = false;
     disable_rumble = false;
-    rumble_scale = 1.0;
     disable_texhack = true; /* Disabled by default until properly tested. */
+    rumble_scale = 1.0;
     force_platform = "os_android";
 }
 
@@ -59,8 +61,9 @@ void gml_config::show_config(){
     printf("config: disable_controller = %d\n", disable_controller);
     printf("config: disable_depth = %d\n", disable_depth);
     printf("config: disable_extensions = %d\n", disable_extensions);
+    printf("config: disable_joystick = %d\n", disable_joystick);
     printf("config: disable_rumble = %d\n", disable_rumble);
-    printf("config: rumble_scale = %f\n", rumble_scale);
     printf("config: disable_texhack = %d\n", disable_texhack);
+    printf("config: rumble_scale = %f\n", rumble_scale);
     printf("config: force_platform = %s\n", force_platform.c_str());
 }
