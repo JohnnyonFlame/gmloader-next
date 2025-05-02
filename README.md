@@ -72,10 +72,10 @@ GMLoader-next can load a json formatted configuration file using the `-c` option
     "show_cursor" : false,
     "disable_controller" : false,
     "disable_depth" : false,
-	"disable_extensions" : false,
-	"disable_joystick" : true,
+    "disable_extensions" : false,
+    "disable_joystick" : true,
     "disable_rumble" : false,
-	"rumble_scale" : 1.0,
+    "rumble_scale" : 1.0,
     "force_platform" : "os_android"
 }
 ```
