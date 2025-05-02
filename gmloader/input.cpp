@@ -362,10 +362,17 @@ int update_inputs(SDL_Window *win)
         }
 
         k = 0;
-        yoyo_gamepads[slot].axis[k++] = ((double)SDL_GameControllerGetAxis(controller->controller, SDL_CONTROLLER_AXIS_LEFTX)) / 32767.f;
-        yoyo_gamepads[slot].axis[k++] = ((double)SDL_GameControllerGetAxis(controller->controller, SDL_CONTROLLER_AXIS_LEFTY)) / 32767.f;
-        yoyo_gamepads[slot].axis[k++] = ((double)SDL_GameControllerGetAxis(controller->controller, SDL_CONTROLLER_AXIS_RIGHTX)) / 32767.f;
-        yoyo_gamepads[slot].axis[k++] = ((double)SDL_GameControllerGetAxis(controller->controller, SDL_CONTROLLER_AXIS_RIGHTY)) / 32767.f;
+        if (gmloader_config.disable_joystick) {
+            yoyo_gamepads[slot].axis[k++] = 0.0;
+            yoyo_gamepads[slot].axis[k++] = 0.0;
+            yoyo_gamepads[slot].axis[k++] = 0.0;
+            yoyo_gamepads[slot].axis[k++] = 0.0;
+        } else {
+            yoyo_gamepads[slot].axis[k++] = ((double)SDL_GameControllerGetAxis(controller->controller, SDL_CONTROLLER_AXIS_LEFTX)) / 32767.0;
+            yoyo_gamepads[slot].axis[k++] = ((double)SDL_GameControllerGetAxis(controller->controller, SDL_CONTROLLER_AXIS_LEFTY)) / 32767.0;
+            yoyo_gamepads[slot].axis[k++] = ((double)SDL_GameControllerGetAxis(controller->controller, SDL_CONTROLLER_AXIS_RIGHTX)) / 32767.0;
+            yoyo_gamepads[slot].axis[k++] = ((double)SDL_GameControllerGetAxis(controller->controller, SDL_CONTROLLER_AXIS_RIGHTY)) / 32767.0;
+        }
     }
 
     // Mouse Code
