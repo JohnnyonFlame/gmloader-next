@@ -17,7 +17,7 @@ static const char* steam_stubs[] = {
     //"steam_get_app_id",
     //"steam_get_user_account_id",
     //"steam_get_user_steam_id",
-    //"steam_get_persona_name",
+    "steam_get_persona_name",
     //"steam_get_user_persona_name",
     //"steam_get_user_persona_name_sync",
     //"steam_is_user_logged_on",
