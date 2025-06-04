@@ -20,6 +20,7 @@
 int relaunch_flag = 0;
 char *program_name = nullptr;
 const char* gc_workdir = nullptr;
+bool override_apk = false;
 
 /*
       Don't touch this incantation. It serves no practical
@@ -143,6 +144,7 @@ int main(int argc, char *argv[])
     // Apply apk_path override if provided
     if (!override_apk_path.empty()) {
         gmloader_config.apk_path = override_apk_path;
+        override_apk = true;
     }
 
     char platform_ov[32];

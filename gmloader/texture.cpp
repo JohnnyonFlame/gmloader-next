@@ -18,6 +18,8 @@ namespace fs = std::filesystem;
 int image_preload_idx = 0;
 int setup_ended = 0;
 
+extern bool override_apk;
+
 typedef struct pvrtc_file {
     uint32_t Version = 0x03525650;
     uint32_t Flags = 0;
@@ -50,7 +52,18 @@ void LoadTextureFromPNG_generic(void *arg1, int arg2, uint32_t *flags, uint32_t 
                 uint32_t idx = (data[1] << 8) >> 8;
 
                 // Load from APK first and then try the gamedir
-                fs::path pvr_path = fs::path(gmloader_config.save_dir)  / "textures" / (std::to_string(idx) + ".pvr");
+                fs::path pvr_path;
+                if (override_apk) {
+                    // Sanitize the apk path
+                    std::string tex_path = gmloader_config.apk_path;
+                    if (tex_path.rfind("assets/", 0) == 0) {
+                        tex_path = tex_path.substr(7); // Remove "assets/"
+                    }
+                    pvr_path = fs::path(gmloader_config.save_dir)  / "textures" / tex_path / (std::to_string(idx) + ".pvr");
+                }
+                else {
+                    pvr_path = fs::path(gmloader_config.save_dir)  / "textures" / (std::to_string(idx) + ".pvr");
+                }
                 int ret = io_load_file(pvr_path.c_str(), (void **)&ext_data, &ext_data_sz);
                 if (ret != 1) {
                     fatal_error("Failed to load '%s'!\n", pvr_path.c_str());
@@ -186,7 +199,18 @@ uint32_t png_get_IHDR_hook(struct png_struct *png_ptr, png_info *info_ptr, uint3
         *interlace_type = info_ptr->interlace_type;
 
     if (!setup_ended && *width == 2 && *height == 1) {
-        fs::path path = fs::path(gmloader_config.save_dir) / "textures" / (std::to_string(image_preload_idx) + ".pvr");
+        fs::path path;
+        if (override_apk) {
+            // Sanitize the apk path
+            std::string tex_path = gmloader_config.apk_path;
+            if (tex_path.rfind("assets/", 0) == 0) {
+                tex_path = tex_path.substr(7); // Remove "assets/"
+            }
+            path = fs::path(gmloader_config.save_dir)  / "textures" / tex_path / (std::to_string(image_preload_idx) + ".pvr");
+        }
+        else {
+            path = fs::path(gmloader_config.save_dir)  / "textures" / (std::to_string(image_preload_idx) + ".pvr");
+        }
         uint32_t _sz;
         uint32_t *buffer;
 
