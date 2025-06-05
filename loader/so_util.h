@@ -111,9 +111,22 @@ typedef struct {
   int opt;
 } DynLibHooks;
 
+/* 
+  Do you need a hook that does something and then goes back to doing the normal
+  code path? Use this.
+*/
+typedef struct {
+  uintptr_t addr;
+  uint32_t prologue[4]; /* worst case scenario */
+  uint32_t trampoline[4]; /* in case we want to re-hook it */
+} ReentrantHook;
+
 void hook_address(so_module *mod, uintptr_t addr, uintptr_t dst);
 void hook_symbol(so_module *mod, const char *symbol, uintptr_t dst, int is_optional);
 void hook_symbols(so_module *mod, DynLibHooks *hooks);
+void rehook_new(so_module *mod, ReentrantHook *hook, uintptr_t addr, uintptr_t dst);
+void rehook_hook(ReentrantHook *hook);
+void rehook_unhook(ReentrantHook *hook);
 
 int so_load(so_module *mod, const char *filename, uintptr_t load_addr, void *so_data, size_t sz);
 void so_relocate(so_module *mod);

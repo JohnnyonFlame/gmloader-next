@@ -680,3 +680,24 @@ void hook_symbols(so_module *mod, DynLibHooks *hooks)
     hook_symbol(mod, hooks[i].symbol, hooks[i].hook, hooks[i].opt);
   }
 }
+
+void rehook_new(so_module *mod, ReentrantHook *hook, uintptr_t addr, uintptr_t dst)
+{
+  hook->addr = addr;
+  memcpy(hook->prologue, (void *)addr, sizeof(hook->prologue));
+  hook_address(mod, addr, dst);
+  memcpy(hook->trampoline, (void *)addr, sizeof(hook->trampoline));
+  rehook_unhook(hook);
+}
+
+void rehook_hook(ReentrantHook *hook)
+{
+  memcpy((void *)hook->addr, (void *)hook->trampoline, sizeof(hook->trampoline));
+  __builtin___clear_cache((void *)hook->addr, (void *)hook->addr+sizeof(hook->trampoline));
+}
+
+void rehook_unhook(ReentrantHook *hook)
+{
+  memcpy((void *)hook->addr, (void *)hook->prologue, sizeof(hook->prologue));
+  __builtin___clear_cache((void *)hook->addr, (void *)hook->addr+sizeof(hook->prologue));
+}
