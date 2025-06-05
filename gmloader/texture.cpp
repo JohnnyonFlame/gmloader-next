@@ -211,11 +211,6 @@ uint32_t png_get_IHDR_hook(struct png_struct *png_ptr, png_info *info_ptr, uint3
         else {
             path = fs::path(gmloader_config.save_dir)  / "textures" / (std::to_string(image_preload_idx) + ".pvr");
         }
-        uint32_t _sz;
-        uint32_t *buffer;
-
-        *width = 0;
-        *height = 0;
 
         FILE *f = fopen(path.c_str(), "rb");
         if (f) {
@@ -223,10 +218,9 @@ uint32_t png_get_IHDR_hook(struct png_struct *png_ptr, png_info *info_ptr, uint3
             fread(height, 1, 4, f);
             fread(width, 1, 4, f);
             fclose(f);
-        }
-
-        if (*width == 0 || *height == 0) {
-            warning("Texture %d metadata preload failure.\n", image_preload_idx);
+        } else {
+            fatal_error("Texture %d metadata preload failure.\n", image_preload_idx);
+            exit(-1);
         }
         
         image_preload_idx++;

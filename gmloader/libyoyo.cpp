@@ -47,11 +47,11 @@ ABI_ATTR char (*Variable_SetBuiltIn_Direct)(void* inst, int var_slot, int array_
 ABI_ATTR void (*Code_Function_GET_the_function)(int numb,char **name,void **code,int *args, int *unk) = NULL;
 ABI_ATTR void (*_RefThing__dec)(void *ref) = NULL;
 ABI_ATTR int (*Variable_BuiltIn_Find)(const char *name) = NULL;
+ABI_ATTR long (*PrepareGame)(void) = NULL;
 ABI_ATTR int (*Code_Variable_Find_Slot_From_Name)(void *instance, const char *name) = NULL;
 ABI_ATTR int (*Variable_FindName)(const char *name) = NULL; /* Unavailable in GMS 1.4+, very old symbol */
 ABI_ATTR long (*ExecuteIt)(void *self, void *other, void *code, RValue *args) = NULL;
 ABI_ATTR long (*ExecuteIt_flags)(void *self, void *other, void *code, RValue *args, int argc) = NULL;
-
 
 bionic_off_t *g_GameFileLength = NULL; //android had 32bit off_t???
 char **g_pWorkingDirectory = NULL;
@@ -86,6 +86,8 @@ void **g_nYYCode = NULL;
 void **g_pGameFileBuffer = NULL;
 void **g_ppYYStackTrace = NULL;
 int *Extension_Main_number = NULL;
+
+ReentrantHook REHPrepareGame = {};
 
 uint8_t prev_kbd_state[N_KEYS] = {};
 uint8_t cur_keys[N_KEYS] = {};
@@ -246,6 +248,16 @@ ABI_ATTR void game_change_reimpl(RValue *ret, void *self, void *other, int argc,
     }
 }
 
+extern int setup_ended;
+ABI_ATTR long PrepareGame_hook()
+{
+    setup_ended = 1;
+    rehook_unhook(&REHPrepareGame);
+    long ret = PrepareGame();
+    warning("- PrepareGame done.\n");
+    return ret;
+}
+
 void patch_libyoyo(so_module *mod)
 {
     // Load all of the native symbols referenced
@@ -322,6 +334,11 @@ void patch_libyoyo(so_module *mod)
 
     // Depth disable
     FIND_SYMBOL(mod, surface_depth_disable, "_Z21F_SurfaceDepthDisableR6RValueP9CInstanceS2_iPS_");
+
+    // Hook the start of the game so we know setup is done
+    ENSURE_SYMBOL(mod, PrepareGame, "_Z11PrepareGamev");
+    rehook_new(mod, &REHPrepareGame, (uintptr_t)PrepareGame, (uintptr_t)&PrepareGame_hook);
+    rehook_hook(&REHPrepareGame);
 
     // Disable extension support
     FIND_SYMBOL(mod, Extension_Main_number, "Extension_Main_number");

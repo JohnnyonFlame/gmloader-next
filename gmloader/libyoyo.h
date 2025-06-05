@@ -325,6 +325,7 @@ extern void **g_nYYCode;
 extern void **g_pGameFileBuffer;
 extern void **g_ppYYStackTrace;
 extern int *Extension_Main_number;
+extern ReentrantHook REHPrepareGame;
 
 extern const char *gc_workdir;
 extern int relaunch_flag;
