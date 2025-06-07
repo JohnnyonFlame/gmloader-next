@@ -10,6 +10,7 @@
 #include "platform.h"
 #include "jni.h"
 #include "jni_internals.h"
+#include "classes/bytebuffer.h"
 
 extern const JNIInvokeInterface jvm_funcs;
 extern const JNINativeInterface jnienv_funcs;
@@ -479,20 +480,18 @@ ABI_ATTR static jobjectRefType iface_GetObjectRefType(JNIEnv *env, jobject jobj)
 
 ABI_ATTR static jobject iface_NewDirectByteBuffer(JNIEnv *env, void* address, jlong capacity)
 {
-    WARN_STUB;
-    return NULL;
+    ByteBuffer *buf = new ByteBuffer(address, capacity);
+    return (jobject)buf;
 }
 
 ABI_ATTR static void* iface_GetDirectBufferAddress(JNIEnv *env, jobject jbuf)
 {
-    WARN_STUB;
-    return NULL;
+    return ((ByteBuffer*)jbuf)->address();
 }
 
 ABI_ATTR static jlong iface_GetDirectBufferCapacity(JNIEnv *env, jobject jbuf)
 {
-    WARN_STUB;
-    return 0L;
+    return ((ByteBuffer*)jbuf)->capacity();
 }
 
 template <typename T>

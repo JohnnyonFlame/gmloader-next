@@ -30,5 +30,25 @@ public:
     static void MoveTaskToBack(JNIEnv *env, jclass clz);
     static int OsGetInfo(JNIEnv *env, jclass clz);
 
+    // Video functions
+    static void VideoOpen(JNIEnv *env, jclass clz, jstring path);
+    static void VideoClose(JNIEnv *env, jclass clz);
+    static jboolean VideoDraw(JNIEnv *env, jclass clz, jobject bytebuffer);
+    static void VideoPause(JNIEnv *env, jclass clz);
+    static void VideoResume(JNIEnv *env, jclass clz);
+    static void VideoEnableLoop(JNIEnv *env, jclass clz, jdouble loop);
+    static void VideoSeekTo(JNIEnv *env, jclass clz, jdouble time);
+    static void VideoSetVolume(JNIEnv *env, jclass clz, jdouble volume);
+    static double VideoStatus(JNIEnv *env, jclass clz);
+    static double VideoGetFormat(JNIEnv *env, jclass clz);
+    static double VideoGetStatus(JNIEnv *env, jclass clz);
+    static double VideoW(JNIEnv *env, jclass clz);
+    static double VideoH(JNIEnv *env, jclass clz);
+    static double VideoGetDuration(JNIEnv *env, jclass clz);
+    static double VideoGetPosition(JNIEnv *env, jclass clz);
+    static double VideoGetVolume(JNIEnv *env, jclass clz);
+    static double VideoIsLooping(JNIEnv *env, jclass clz);
+   
+
     static double mGameSpeedControl;
 };
