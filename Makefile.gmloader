@@ -58,6 +58,12 @@ ifeq (${USE_LUA},1)
 	-include 3rdparty/lua.mk
 endif
 
+ifeq (${VIDEO_SUPPORT},1)
+	CFLAGS+=-DVIDEO_SUPPORT=1 -I./3rdparty/SDL_kitchensink/include
+	LIBS+=-lavcodec -lavformat -lswresample -lswscale -lavutil
+	-include 3rdparty/SDL_kitchensink.mk
+endif
+
 # Used by generate_libc.py to generate the function tables that are exported to the
 # application.
 LIBC_SRCS=$(filter-out $(if ${exclude_file1},,thunks/libc/libc_table.cpp),$(wildcard thunks/libc/*.cpp))
@@ -91,8 +97,8 @@ clean:
 
 # By repeating the generated headers on this rule, we force them to start building
 # as soon as possible, so libc_table.cpp isn't waiting forever.
-build/${ARCH}/gmloader/gmloadernext.${DEVICE_ARCH}: ${LIBC_TABS} $(BSD_OBJ) $(LUA_OBJ) $(ZIP_OBJ) $(FMODSDL_OBJ) $(OBJ)
-	$(CXX) $(LDFLAGS) -o $@ $(OBJ) $(LUA_OBJ) $(ZIP_OBJ) $(FMODSDL_OBJ) $(BSD_OBJ) $(LIBS)
+build/${ARCH}/gmloader/gmloadernext.${DEVICE_ARCH}: ${LIBC_TABS} $(BSD_OBJ) $(LUA_OBJ) $(ZIP_OBJ) $(FMODSDL_OBJ) $(KIT_OBJ) $(OBJ)
+	$(CXX) $(LDFLAGS) -o $@ $(OBJ) $(LUA_OBJ) $(ZIP_OBJ) $(FMODSDL_OBJ) $(KIT_OBJ) $(BSD_OBJ) $(LIBS)
 
 build/${ARCH}/%.cpp.o: %.cpp
 	@mkdir -p $(@D)

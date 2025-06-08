@@ -16,3 +16,6 @@
 [submodule "3rdparty/lua"]
 	path = 3rdparty/lua
 	url = https://github.com/lua/lua
+[submodule "3rdparty/SDL_kitchensink"]
+	path = 3rdparty/SDL_kitchensink
+	url = https://github.com/katajakasa/SDL_kitchensink

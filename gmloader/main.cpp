@@ -15,6 +15,7 @@
 #include "libyoyo.h"
 #include "configuration.h"
 #include "texture.h"
+#include "video.h"
 
 
 int relaunch_flag = 0;
@@ -303,10 +304,21 @@ int main(int argc, char *argv[])
     int cont = 1;
     int w, h;
 
+    #ifdef VIDEO_SUPPORT
+    if (video_init(sdl_win, save_dir.c_str()) != 0)
+    {
+        fatal_error("Could not initialize Video Playback.\n");
+        return -1;
+    }
+    #endif
+
     RunnerJNILib::Startup(env, 0, apk_path_arg, save_dir_arg, pkg_dir_arg, 4, 0);
     setup_ended = 1;
 
     while (cont != 0 && cont != 2 && RunnerJNILib_MoveTaskToBackCalled == 0 && relaunch_flag == 0) {
+        #ifdef VIDEO_SUPPORT
+        video_process();
+        #endif
         if (update_inputs(sdl_win) != 1)
             break;
         SDL_GetWindowSize(sdl_win, &w, &h);

@@ -6,6 +6,8 @@
 #include "jni_internals.h"
 #include "RunnerJNILib.h"
 #include "libyoyo.h"
+#include "jni/classes/bytebuffer.h"
+#include "video.h"
 
 #define MANGLED_CLASSPATH "Java_com_yoyogames_runner_RunnerJNILib_"
 #define CLASS RunnerJNILib
@@ -104,10 +106,120 @@ int RunnerJNILib::OsGetInfo(JNIEnv *env, jclass clz)
     return osinfo;
 }
 
+#ifdef VIDEO_SUPPORT
+void RunnerJNILib::VideoOpen(JNIEnv *env, jclass clz, jstring path)
+{
+    video_open_internal(env->GetStringUTFChars(path,NULL));
+}
+
+void RunnerJNILib::VideoClose(JNIEnv *env, jclass clz)
+{
+    video_close_internal();
+}
+
+jboolean RunnerJNILib::VideoDraw(JNIEnv *env, jclass clz, jobject bytebuffer)
+{
+    ByteBuffer* buf=(ByteBuffer*)bytebuffer;
+    return video_draw_internal(buf->address());
+}
+
+void RunnerJNILib::VideoSetVolume(JNIEnv *env, jclass clz, jdouble volume)
+{
+    return video_set_volume_internal(volume);
+}
+
+void RunnerJNILib::VideoSeekTo(JNIEnv *env, jclass clz, jdouble time)
+{
+    return video_seek_to_internal(time);
+}
+
+void RunnerJNILib::VideoEnableLoop(JNIEnv *env, jclass clz, jdouble loop)
+{
+    return video_enable_loop_internal(loop);
+}
+
+void RunnerJNILib::VideoPause(JNIEnv *env, jclass clz)
+{
+    return video_pause_internal();
+}
+
+void RunnerJNILib::VideoResume(JNIEnv *env, jclass clz)
+{
+    return video_resume_internal();
+}
+
+jdouble RunnerJNILib::VideoStatus(JNIEnv *env, jclass clz)
+{
+    return video_status_internal();
+}
+
+jdouble RunnerJNILib::VideoGetStatus(JNIEnv *env, jclass clz)
+{
+    return video_get_status_internal();
+}
+
+jdouble RunnerJNILib::VideoGetFormat(JNIEnv *env, jclass clz)
+{
+    return video_get_format_internal();
+}
+
+jdouble RunnerJNILib::VideoW(JNIEnv *env, jclass clz)
+{
+    return video_get_width_internal();
+}
+
+jdouble RunnerJNILib::VideoH(JNIEnv *env, jclass clz)
+{
+    return video_get_height_internal();
+}
+
+jdouble RunnerJNILib::VideoGetDuration(JNIEnv *env, jclass clz)
+{
+    return video_get_duration_internal();
+}
+
+jdouble RunnerJNILib::VideoGetPosition(JNIEnv *env, jclass clz)
+{
+    return video_get_position_internal();
+}
+
+jdouble RunnerJNILib::VideoGetVolume(JNIEnv *env, jclass clz)
+{
+    return video_get_volume_internal();
+}
+
+jdouble RunnerJNILib::VideoIsLooping(JNIEnv *env, jclass clz)
+{
+    return video_is_looping_internal();
+}
+
+
+
+#endif // VIDEO_SUPPORT
+
 const ManagedMethod RunnerJNILibManagedMethods[] = {
     REGISTER_STATIC_METHOD(RunnerJNILib, OsGetInfo, "()I"),
     REGISTER_STATIC_METHOD(RunnerJNILib, GamepadAxesValues, "(I)[F"),
     REGISTER_STATIC_METHOD(RunnerJNILib, MoveTaskToBack, "()V"),
+    #ifdef VIDEO_SUPPORT
+    REGISTER_STATIC_METHOD(RunnerJNILib, VideoOpen, "(Ljava/lang/String;)V"),
+    REGISTER_STATIC_METHOD(RunnerJNILib, VideoClose, "()V"),
+    REGISTER_STATIC_METHOD(RunnerJNILib, VideoDraw, "(Ljava/nio/ByteBuffer;)Z"),
+    REGISTER_STATIC_METHOD(RunnerJNILib, VideoSetVolume, "(D)V"),
+    REGISTER_STATIC_METHOD(RunnerJNILib, VideoEnableLoop, "(D)V"),
+    REGISTER_STATIC_METHOD(RunnerJNILib, VideoSeekTo, "(D)V"),
+    REGISTER_STATIC_METHOD(RunnerJNILib, VideoPause, "()V"),
+    REGISTER_STATIC_METHOD(RunnerJNILib, VideoResume, "()V"),
+    REGISTER_STATIC_METHOD(RunnerJNILib, VideoStatus, "()D"),
+    REGISTER_STATIC_METHOD(RunnerJNILib, VideoGetFormat, "()D"),
+    REGISTER_STATIC_METHOD(RunnerJNILib, VideoW, "()D"),
+    REGISTER_STATIC_METHOD(RunnerJNILib, VideoH, "()D"),
+    REGISTER_STATIC_METHOD(RunnerJNILib, VideoGetDuration, "()D"),
+    REGISTER_STATIC_METHOD(RunnerJNILib, VideoGetPosition, "()D"), 
+    REGISTER_STATIC_METHOD(RunnerJNILib, VideoGetStatus, "()D"),
+    REGISTER_STATIC_METHOD(RunnerJNILib, VideoIsLooping, "()D"),
+    REGISTER_STATIC_METHOD(RunnerJNILib, VideoGetVolume, "()D"),
+    #endif // VIDEO_SUPPORT
     NULL
 };
 

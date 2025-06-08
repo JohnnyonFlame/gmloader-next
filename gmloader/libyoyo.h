@@ -341,6 +341,7 @@ extern void patch_steam(struct so_module *mod);
 extern void patch_texture(struct so_module *mod);
 extern void patch_lua(struct so_module* mod);
 extern void run_lua(const char *code);
+extern "C" void send_async_social(const char* type);
 
 extern int update_inputs(struct SDL_Window *sdl_win);
 void disable_depth();
