@@ -21,7 +21,7 @@ LIBS:=\
 	-lrt \
 	-ldl \
 	$(shell ${PKG_CONFIG} sdl2 --libs) \
-	$(shell ${PKG_CONFIG} zlib --libs) 
+	$(shell ${PKG_CONFIG} zlib --libs)
 
 # General compilation flags
 OPTM?=-Os

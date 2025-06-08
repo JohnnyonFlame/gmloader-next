@@ -82,22 +82,24 @@ void video_open_internal(const char* path)
         sprintf(full_path, "%s", path);
     }
 
+    // Load video file
     video_src = Kit_CreateSourceFromUrl(full_path);
     if (video_src == NULL) {
         fatal_error("Unable to load video file '%s': %s\n", path, Kit_GetError());
         video_status = -1;
-        send_async_social("video_end");
+        send_async_social("video_end"); //Just pretend we have ended the video, avoids stalling the game
         return;
     }
 
+    // Select streams
     int video_vindex = Kit_GetBestSourceStream(video_src, KIT_STREAMTYPE_VIDEO);
     int video_aindex = Kit_GetBestSourceStream(video_src, KIT_STREAMTYPE_AUDIO);
     if (video_vindex < 0)
         warning("Video file %s does not contain a video stream.\n", path);
 
+    // Create player with window dimensions, later update it to video dimensions
     int win_w, win_h;
     SDL_GetWindowSize(sdl_win, &win_w, &win_h);
-
     video_player = Kit_CreatePlayer(
         video_src,
         video_vindex,
@@ -107,7 +109,6 @@ void video_open_internal(const char* path)
 
     Kit_PlayerInfo pinfo;
     Kit_GetPlayerInfo(video_player, &pinfo);
-
     if (Kit_GetPlayerAudioStream(video_player) >= 0) {
         warning(" * Audio: %s (%s), threads=%d, %dHz, %dch, %db, %s\n",
             pinfo.audio.codec.name,
@@ -129,6 +130,7 @@ void video_open_internal(const char* path)
 
         video_width = pinfo.video.output.width;
         video_height = pinfo.video.output.height;
+        Kit_SetPlayerScreenSize(video_player, video_width, video_height);
 
         // Android Game Maker does not support YUV Video, so we need to force the output to RGBA, making ffmpeg convert it on the fly
         Kit_Decoder* video_decoder = (Kit_Decoder*)video_player->decoders[KIT_VIDEO_DEC];
@@ -136,6 +138,7 @@ void video_open_internal(const char* path)
         video_format = 0;
     }
 
+    // Set up frame buffer
     video_buffer_size = pinfo.video.output.width * pinfo.video.output.height * 4;
     video_buffer = malloc(video_buffer_size);
 
@@ -149,6 +152,7 @@ void video_open_internal(const char* path)
     video_audiodev = SDL_OpenAudioDevice(NULL, 0, &wanted_spec, &audio_spec, 0);
     SDL_PauseAudioDevice(video_audiodev, 0);
 
+    // Start player, set start variables
     Kit_PlayerPlay(video_player);
     video_loaded = true;
     video_status = 0;
@@ -280,8 +284,8 @@ void video_process()
 
     if (video_playback_status==0)
         return;
-        
 
+    // If player has stopped, either loop or send end event
     if (Kit_GetPlayerState(video_player) == KIT_STOPPED) {
         video_seek_to_internal(0);
         if (video_loop_enabled) {
@@ -360,7 +364,7 @@ void video_decode()
     switch (dec->output.format) {
     case SDL_PIXELFORMAT_YV12:
     case SDL_PIXELFORMAT_IYUV:
-        // Normally this should never happen since we're setting the output format to RGBA in video_open
+        // Normally YUV output should never happen since we're setting the output format to RGBA in video_open
         memcpy(video_buffer, packet->frame->data[0], packet->frame->linesize[0] * video_height);
         memcpy(video_buffer + packet->frame->linesize[0] * video_height, packet->frame->data[1], packet->frame->linesize[1] * video_height);
         memcpy(video_buffer + packet->frame->linesize[0] * video_height + packet->frame->linesize[1] * video_height, packet->frame->data[2], packet->frame->linesize[2] * video_height);

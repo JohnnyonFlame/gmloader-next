@@ -189,20 +189,22 @@ void send_async_social(const char* type)
         }
 }
 
-// ABI_ATTR static void video_open_reimpl(RValue *ret, void *self, void *other, int argc, RValue *args)
-// {
-//     ret->kind = VALUE_BOOL;
-//     ret->rvalue.val = 1;
+#ifndef VIDEO_SUPPORT
+ABI_ATTR static void video_open_reimpl(RValue *ret, void *self, void *other, int argc, RValue *args)
+{
+    ret->kind = VALUE_BOOL;
+    ret->rvalue.val = 1;
 
-//     if (CreateAsynEventWithDSMap != NULL && CreateDsMap != NULL && dsMapAddString != NULL) {
-//         int ds_map = CreateDsMap(0);
-//         dsMapAddString(ds_map, "type", "video_end");
-//         if (argc > 0 && args[0].kind == VALUE_STRING) {
-//             dsMapAddString(ds_map, "path", YYGetCStrHelper(args, 0));
-//         }
-//         CreateAsynEventWithDSMap(ds_map, 70);
-//     }
-// }
+    if (CreateAsynEventWithDSMap != NULL && CreateDsMap != NULL && dsMapAddString != NULL) {
+        int ds_map = CreateDsMap(0);
+        dsMapAddString(ds_map, "type", "video_end");
+        if (argc > 0 && args[0].kind == VALUE_STRING) {
+            dsMapAddString(ds_map, "path", YYGetCStrHelper(args, 0));
+        }
+        CreateAsynEventWithDSMap(ds_map, 70);
+    }
+}
+#endif
 
 // Implementation of game_change which is not available for android normally
 //  Takes two arguments: work_dir and launch_params (example: "/chapter1_windows" "-game data.win")
@@ -393,7 +395,9 @@ void patch_libyoyo(so_module *mod)
     }
 
     Function_Add("window_handle", window_handle, 0, 1);
-    // Function_Add("video_open", video_open_reimpl, 1, 1);
+    #ifndef VIDEO_SUPPORT //Add the stub if real video support isn't included
+    Function_Add("video_open", video_open_reimpl, 1, 1);
+    #endif
     Function_Add("game_change", game_change_reimpl, 2, 0);
 
     so_symbol_fix_ldmia(mod, "_Z11Shader_LoadPhjS_");
