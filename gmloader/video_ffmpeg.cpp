@@ -19,9 +19,6 @@ extern "C" {
 #include <string.h>
 
 #define AUDIOBUFFER_SIZE (1024 * 64)
-#define ATLAS_WIDTH 4096
-#define ATLAS_HEIGHT 4096
-#define ATLAS_MAX 1024
 
 static SDL_Window* sdl_win = NULL;
 static SDL_AudioDeviceID video_audiodev = NULL;
@@ -59,7 +56,7 @@ int video_init(SDL_Window* sdl_window, const char* save_path)
     // Set to 0 to allow ffmpeg decide thread count.
     Kit_SetHint(KIT_HINT_THREAD_COUNT, 0);
     Kit_SetHint(KIT_HINT_VIDEO_BUFFER_FRAMES, 5);
-    Kit_SetHint(KIT_HINT_AUDIO_BUFFER_FRAMES, 192);
+    Kit_SetHint(KIT_HINT_AUDIO_BUFFER_FRAMES, 8192);
 
     save_dir=save_path;
     sdl_win=sdl_window;
@@ -69,7 +66,7 @@ int video_init(SDL_Window* sdl_window, const char* save_path)
 
 void video_open_internal(const char* path)
 {
-    warning("Loading Video file %s\n", path);
+    warning("Loading video file %s\n", path);
     if (video_loaded)
         video_close_internal();
 
@@ -89,6 +86,7 @@ void video_open_internal(const char* path)
     if (video_src == NULL) {
         fatal_error("Unable to load video file '%s': %s\n", path, Kit_GetError());
         video_status = -1;
+        send_async_social("video_end");
         return;
     }
 
@@ -147,6 +145,7 @@ void video_open_internal(const char* path)
     wanted_spec.freq = pinfo.audio.output.samplerate;
     wanted_spec.format = pinfo.audio.output.format;
     wanted_spec.channels = pinfo.audio.output.channels;
+    wanted_spec.size = 32768;
     video_audiodev = SDL_OpenAudioDevice(NULL, 0, &wanted_spec, &audio_spec, 0);
     SDL_PauseAudioDevice(video_audiodev, 0);
 
@@ -296,8 +295,8 @@ void video_process()
 
         int queued = SDL_GetQueuedAudioSize(video_audiodev);
         if (queued < AUDIOBUFFER_SIZE) {
-            int ret = Kit_GetPlayerAudioData(video_player, (unsigned char*)video_audiobuf, AUDIOBUFFER_SIZE);
-            if (ret > 0) {
+            int ret;
+            while ((ret = Kit_GetPlayerAudioData(video_player, (unsigned char*)video_audiobuf, AUDIOBUFFER_SIZE)) > 0) {
                 SDL_QueueAudio(video_audiodev, video_audiobuf, ret);
             }
         }
