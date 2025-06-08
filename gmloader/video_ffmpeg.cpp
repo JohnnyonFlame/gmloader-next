@@ -280,6 +280,7 @@ void video_process()
 
     if (video_playback_status==0)
         return;
+        
 
     if (Kit_GetPlayerState(video_player) == KIT_STOPPED) {
         video_seek_to_internal(0);
