@@ -71,6 +71,14 @@ typedef struct Gamepad {
 } Gamepad;
 
 typedef ABI_ATTR void (*routine_t)(RValue *ret, void *self, void *other, int argc, RValue *args);
+
+typedef struct FunctionEntry {
+    char *f_name;
+    routine_t func_ptr;
+    int arg_count;
+    int param_4;
+} FunctionEntry;
+
 typedef struct RFunction {
 	char f_name[64];
 	routine_t f_routine;
@@ -309,7 +317,7 @@ extern int *g_TotalCodeBlocks;
 extern struct CCode **g_pFirstCode;
 extern int *g_ArgumentCount;
 extern RValue **Argument;
-extern RFunction **the_functions;
+extern FunctionEntry **the_functions;
 extern uint32_t *g_IOFrameCount;
 extern uint8_t *_IO_ButtonDown;
 extern uint8_t *_IO_ButtonPressed;
@@ -337,6 +345,7 @@ extern void patch_mouse(struct so_module *mod);
 extern void patch_fmod(struct so_module *mod);
 extern void patch_display_mouse_lock(struct so_module *mod);
 extern void patch_gameframe(struct so_module *mod);
+extern void patch_psn(struct so_module *mod);
 extern void patch_steam(struct so_module *mod);
 extern void patch_texture(struct so_module *mod);
 extern void patch_lua(struct so_module* mod);
@@ -351,3 +360,6 @@ extern void YYThingDerefHelper(struct RValue *rval);
 extern const char *YYGetCStrHelper(struct RValue *rval, int idx);
 extern const char *YYCCodeName(struct CCode *code);
 extern int UsesRefStrings();
+
+extern "C" fct_add_t Original_Function_Add;
+void Function_Add_Hook(const char* f_name, routine_t func, int argc, char reg);

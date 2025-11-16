@@ -232,6 +232,7 @@ int main(int argc, char *argv[])
     patch_fmod(&libyoyo);
     patch_display_mouse_lock(&libyoyo);
     patch_gameframe(&libyoyo);
+    patch_psn(&libyoyo);
     patch_steam(&libyoyo);
     patch_texture(&libyoyo);
     patch_lua(&libyoyo);

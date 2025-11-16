@@ -1,14 +1,13 @@
-#include <stdio.h>
-#include <string.h>
 #include <stdarg.h>
+#include <stdio.h>
 #include <string.h>
 #include <string>
 #include <stdlib.h>
+#include <unordered_map>
 
 #include "platform.h"
 #include "so_util.h"
 #include "libyoyo.h"
-#include "stdlib.h"
 #include "configuration.h"
 
 ABI_ATTR create_async_event_with_ds_map_t CreateAsynEventWithDSMap = NULL;
@@ -70,7 +69,7 @@ struct CCode **g_pFirstCode = NULL;
 int *g_TotalCodeBlocks = NULL;
 int *g_ArgumentCount = NULL;
 RValue **Argument = NULL;
-RFunction **the_functions = NULL;
+FunctionEntry **the_functions = NULL;
 uint32_t *g_IOFrameCount = NULL;
 uint8_t *_IO_ButtonDown = NULL;
 uint8_t *_IO_ButtonPressed = NULL;
@@ -86,40 +85,75 @@ void **g_nYYCode = NULL;
 void **g_pGameFileBuffer = NULL;
 void **g_ppYYStackTrace = NULL;
 int *Extension_Main_number = NULL;
-
-ReentrantHook REHPrepareGame = {};
-
 uint8_t prev_kbd_state[N_KEYS] = {};
 uint8_t cur_keys[N_KEYS] = {};
-
 static const char *fake_functs[] = {
-    // Other stubs
     "object_set_collisions",
-
-    // PSN Stubs
-    "psn_show_error_dialog",
-    "psn_check_free_space",
-    "psn_get_leaderboard_score_range",
-    "psn_default_user_name",
-    "psn_name_for_pad",
-    "psn_unlock_trophy",
-    "psn_get_trophy_unlock_state",
-    "psn_init_np_libs",
-    "psn_exit_np_libs",
-    "psn_get_leaderboard_score",
-    "psn_post_leaderboard_score",
-    "psn_post_leaderboard_score_comment",
-    "psn_check_np_availability",
-    "psn_tick_error_dialog",
-    "psn_tick",
-    "psn_np_status",
-    "psn_get_friends_scores",
-    "psn_name_for_user",
-    "psn_default_user",
-    "psn_user_for_pad",
 };
-
 double FORCE_PLATFORM = os_android;
+
+size_t g_function_stride = 0;
+fct_add_t Original_Function_Add = NULL;
+static std::unordered_map<std::string, FunctionEntry*> g_function_map;
+
+ReentrantHook REHPrepareGame = {};
+ReentrantHook REHFunctionAdd = {};
+
+/*
+* YoYo's Function_Add used to blindly append functions to the function table.
+* This allowed duplicate functions which worked since our functions are added to the table before the engine does its own thing.
+* As of 2024.14, Function_Add checks for duplicates and fails if a function with the same name already exists.
+* Sadly it adds a new index to the table array before this check, so when the check fails there's a null index which is later dereferenced.
+* Oops.
+*/
+
+// Detect the size/stride of FunctionEntry in the function table
+size_t detect_function_entry_stride(FunctionEntry **functions, int count) {
+    if (!functions || count < 2) return sizeof(FunctionEntry);
+
+    FunctionEntry* first = functions[0];
+    FunctionEntry* second = functions[1];
+
+    size_t stride = reinterpret_cast<uintptr_t>(second) - reinterpret_cast<uintptr_t>(first);
+    if (stride < sizeof(FunctionEntry)) {
+        stride = sizeof(FunctionEntry);
+    }
+    return stride;
+}
+
+void Function_Add_Hook(const char* f_name, routine_t func, int arg_count, char reg)
+{
+    if (!the_functions || !the_numb) {
+        return;
+    }
+
+    // Stride Detection
+    if (g_function_stride == 0) {
+        if (*the_numb >= 2) {
+            g_function_stride = detect_function_entry_stride(the_functions, *the_numb);
+        } else {
+            g_function_stride = 0x18;
+        }
+    }
+
+    auto it = g_function_map.find(f_name);
+    if (it != g_function_map.end()) {
+        return;
+    }
+
+    rehook_unhook(&REHFunctionAdd);
+    Original_Function_Add(f_name, func, arg_count, reg);
+    rehook_hook(&REHFunctionAdd);
+
+    FunctionEntry* list_base = (FunctionEntry*)*the_functions;
+    int n = *the_numb;
+
+    FunctionEntry* new_entry = reinterpret_cast<FunctionEntry*>(
+        reinterpret_cast<uintptr_t>(list_base) + (n - 1) * g_function_stride
+    );
+
+    g_function_map[f_name] = new_entry;
+}
 
 ABI_ATTR int _dbg_csol_print(void *csol, const char *fmt, ...) {
     char csol_str[2048];
@@ -375,6 +409,14 @@ void patch_libyoyo(so_module *mod)
     hook_symbol(mod, "_Z23YoYo_GetPlatform_DoWorkv", (uintptr_t)&force_platform_type, 1);
     hook_symbol(mod, "_Z20GET_YoYo_GetPlatformP9CInstanceiP6RValue", (uintptr_t)&force_platform_type_gms2, 1);
 
+    // Wrap Function_Add
+    if (Function_Add && !Original_Function_Add)
+    {
+        Original_Function_Add = Function_Add;
+        rehook_new(mod, &REHFunctionAdd, (uintptr_t)Function_Add, (uintptr_t)&Function_Add_Hook);
+        rehook_hook(&REHFunctionAdd);
+    }
+    
 #if defined(__arm__)
     // Add a "game_end" function (useless on 1.4.1788+ until 1.4.1804ish?)
     // From 'https://store.yoyogames.com/downloads/gm-studio/release-notes-studio.html':
