@@ -16,11 +16,11 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: debian:bullseye
-    name: Debian ${{ matrix.arch.name }}
+    name: Debian ${{ matrix.arch.name }} (No Video)
     strategy:
       fail-fast: false
       matrix:
-        arch: 
+        arch:
           - name: arm64
             cross: aarch64-linux-gnu
             executable: aarch64
@@ -33,17 +33,53 @@ jobs:
         run: |
           dpkg --add-architecture ${{ matrix.arch.name }}
           apt update
-          apt install -y --no-install-recommends python3 git dpkg-dev build-essential binutils python3-clang binutils-${{ matrix.arch.cross }} libstdc++-10-dev-${{ matrix.arch.name }}-cross linux-libc-dev-${{ matrix.arch.name }}-cross make linux-libc-dev-${{ matrix.arch.name }}-cross linux-libc-dev-${{ matrix.arch.name }}-cross gcc-${{ matrix.arch.cross }} g++-${{ matrix.arch.cross }} libsdl2-dev:${{ matrix.arch.name }} libzip-dev:${{ matrix.arch.name }} ca-certificates
+          apt install -y --no-install-recommends python3 git dpkg-dev build-essential binutils python3-clang binutils-${{ matrix.arch.cross }} libstdc++-10-dev-${{ matrix.arch.name }}-cross linux-libc-dev-${{ matrix.arch.name }}-cross make gcc-${{ matrix.arch.cross }} g++-${{ matrix.arch.cross }} libsdl2-dev:${{ matrix.arch.name }} libzip-dev:${{ matrix.arch.name }} ca-certificates
 
       - uses: actions/checkout@v4
         with:
           submodules: recursive
 
-      - name: Build ${{ matrix.arch.name }}
+      - name: Build ${{ matrix.arch.name }} (No Video)
         run: make -f Makefile.gmloader ARCH=${{ matrix.arch.cross }} LLVM_FILE=/usr/lib/llvm-11/lib/libclang-11.so LLVM_INC=/usr/${{ matrix.arch.cross }}/include/c++/10/${{ matrix.arch.cross }} -j$(nproc)
 
-      - name: Upload Artifacts
+      - name: Upload Artifacts (No Video)
         uses: actions/upload-artifact@v4
         with:
-          name: gmloadernext_${{ matrix.arch.name }}
-          path: ${{ github.workspace }}/build/${{ matrix.arch.cross }}/gmloader/gmloadernext.${{ matrix.arch.executable}}
+          name: gmloadernext_${{ matrix.arch.name }}_no-video
+          path: ${{ github.workspace }}/build/${{ matrix.arch.cross }}/gmloader/gmloadernext.${{ matrix.arch.executable }}
+
+  build-video:
+    runs-on: ubuntu-latest
+    container:
+      image: debian:bullseye
+    name: Debian ${{ matrix.arch.name }} (Video Support)
+    strategy:
+      fail-fast: false
+      matrix:
+        arch:
+          - name: arm64
+            cross: aarch64-linux-gnu
+            executable: aarch64
+          - name: armhf
+            cross: arm-linux-gnueabihf
+            executable: armhf
+
+    steps:
+      - name: Install ${{ matrix.arch.name }} dependencies
+        run: |
+          dpkg --add-architecture ${{ matrix.arch.name }}
+          apt update
+          apt install -y --no-install-recommends python3 git dpkg-dev build-essential binutils python3-clang binutils-${{ matrix.arch.cross }} libstdc++-10-dev-${{ matrix.arch.name }}-cross linux-libc-dev-${{ matrix.arch.name }}-cross make gcc-${{ matrix.arch.cross }} g++-${{ matrix.arch.cross }} libsdl2-dev:${{ matrix.arch.name }} libzip-dev:${{ matrix.arch.name }} libavformat-dev:${{ matrix.arch.name }} libavcodec-dev:${{ matrix.arch.name }} libswscale-dev:${{ matrix.arch.name }} libavutil-dev:${{ matrix.arch.name }} libass-dev:${{ matrix.arch.name }} ca-certificates
+
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Build ${{ matrix.arch.name }} (Video Support)
+        run: make -f Makefile.gmloader ARCH=${{ matrix.arch.cross }} VIDEO_SUPPORT=1 LLVM_FILE=/usr/lib/llvm-11/lib/libclang-11.so LLVM_INC=/usr/${{ matrix.arch.cross }}/include/c++/10/${{ matrix.arch.cross }} -j$(nproc)
+
+      - name: Upload Artifacts (Video Support)
+        uses: actions/upload-artifact@v4
+        with:
+          name: gmloadernext_${{ matrix.arch.name }}_video
+          path: ${{ github.workspace }}/build/${{ matrix.arch.cross }}/gmloader/gmloadernext.${{ matrix.arch.executable }}
