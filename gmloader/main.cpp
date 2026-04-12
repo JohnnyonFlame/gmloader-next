@@ -17,6 +17,7 @@
 #include "configuration.h"
 #include "texture.h"
 #include "video.h"
+#include "splash.h"
 
 
 int relaunch_flag = 0;
@@ -328,6 +329,14 @@ int main(int argc, char *argv[])
         return -1;
     }
     #endif
+
+    int sw, sh;
+    SDL_GetWindowSize(sdl_win, &sw, &sh);
+    // Render twice so both buffers carry the splash during Startup().
+    splash_render(apk, sw, sh);
+    SDL_GL_SwapWindow(sdl_win);
+    splash_render(apk, sw, sh);
+    SDL_GL_SwapWindow(sdl_win);
 
     RunnerJNILib::Startup(env, 0, apk_path_arg, save_dir_arg, pkg_dir_arg, 4, 0);
     setup_ended = 1;
