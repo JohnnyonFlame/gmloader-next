@@ -151,6 +151,20 @@ static const char* steam_stubs[] = {
     "steam_set_rich_presence",
     "steam_user_set_played_with",
 
+    // Apps / DLC
+    //
+    // These are explicitly stubbed because libyoyo's Android implementation 
+    // returns -1 ("not logged in") when Steam is unavailable. Per the GMEXT-Steamworks 
+    // docs, steam_user_owns_dlc is documented to return -1/0/1. Games written for Windows
+    // (where Steam is always up at test time) commonly use a truthy check --
+    // -- and -1 is truthy in GML, so without an explicit stub those games
+    // accidentally unlock DLC content baked into data.win.
+    //
+    // Returning 0 (not owned) is the most DRM-respecting default we can give:
+    // we cannot verify Steam ownership, so the honest answer is "no".
+    "steam_user_owns_dlc",
+    "steam_user_installed_dlc",
+
     // Utils
     "steam_dismiss_floating_gamepad_text_input",
     "steam_get_entered_gamepad_text_input",

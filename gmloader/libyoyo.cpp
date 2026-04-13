@@ -241,6 +241,7 @@ ABI_ATTR void game_change_reimpl(RValue *ret, void *self, void *other, int argc,
         }
     }
 
+    free((void *)gc_workdir);
     gc_workdir = strdup(YYGetCStrHelper(args, 0));
     if (!gc_workdir) {
         warning("game_change(): Failed to duplicate workdir\n");
@@ -472,7 +473,7 @@ void YYCreateStringHelper(RValue *rval, const char *str)
 
 void YYThingDerefHelper(RValue *rval)
 {
-    if (rval->kind != VALUE_STRING || rval->kind != VALUE_REF)
+    if (rval->kind != VALUE_STRING && rval->kind != VALUE_REF)
         return;
 
     if (UsesRefStrings())
@@ -481,7 +482,7 @@ void YYThingDerefHelper(RValue *rval)
         {
             _RefThing__dec(rval);
         }
-        else
+        else if (rval->rvalue.str)
         {
             free(rval->rvalue.str->m_thing);
             rval->rvalue.str->m_thing = NULL;
@@ -490,10 +491,10 @@ void YYThingDerefHelper(RValue *rval)
             rval->kind = VALUE_UNSET;
         }
     }
-    else
+    else if (rval->rvalue.str)
     {
-        rval->rvalue.str = NULL;
         free(rval->rvalue.str);
+        rval->rvalue.str = NULL;
         rval->kind = VALUE_UNSET;
     }
 }
