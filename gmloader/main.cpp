@@ -1,5 +1,6 @@
 #include <SDL2/SDL.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <signal.h>
 #include <unistd.h>
@@ -68,6 +69,13 @@ int load_module(const char *soname, zip_t *apk, so_module &mod, uintptr_t base_a
     = "";
     #error Unknown arch, implement me.
 #endif
+
+    const char *libroot = getenv("GMLOADER_LIB_PATH");
+    if (libroot && *libroot) {
+        snprintf(filepath, PATH_MAX, "%s/%s/%s", libroot, path, soname);
+        if (io_load_file(filepath, &buffer, &image_size))
+            goto load_module_success;
+    }
 
     snprintf(filepath, PATH_MAX, "lib/%s/%s", path, soname);
     if (io_load_file(filepath, &buffer, &image_size))
