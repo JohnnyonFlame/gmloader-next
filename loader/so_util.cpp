@@ -131,7 +131,7 @@ int so_load(so_module *mod, const char *filename, uintptr_t load_addr, void *so_
   if (load_addr == 0)
     load_addr = (uintptr_t)shd + PATCH_SZ;
 
-  if (!shd)
+  if (shd == MAP_FAILED)
     return -1;
 
   // This is a hint for GDB to load the elf file symbols - you need to add a
