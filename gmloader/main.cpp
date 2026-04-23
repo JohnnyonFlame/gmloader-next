@@ -332,11 +332,7 @@ int main(int argc, char *argv[])
 
     int sw, sh;
     SDL_GetWindowSize(sdl_win, &sw, &sh);
-    // Render twice so both buffers carry the splash during Startup().
-    splash_render(apk, sw, sh);
-    SDL_GL_SwapWindow(sdl_win);
-    splash_render(apk, sw, sh);
-    SDL_GL_SwapWindow(sdl_win);
+    splash_render(apk, sw, sh, sdl_win);
 
     RunnerJNILib::Startup(env, 0, apk_path_arg, save_dir_arg, pkg_dir_arg, 4, 0);
     setup_ended = 1;

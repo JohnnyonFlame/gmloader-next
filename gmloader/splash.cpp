@@ -1,3 +1,4 @@
+#include <SDL2/SDL.h>
 #include <filesystem>
 #include <stdint.h>
 #include <stdlib.h>
@@ -116,7 +117,7 @@ static void compute_aspect_quad(int vp_w, int vp_h, int img_w, int img_h,
     verts[12] =  1.0f - sx; verts[13] =  1.0f - sy; verts[14] = u;    verts[15] = 0.0f;
 }
 
-void splash_render(zip_t *apk, int vp_w, int vp_h)
+void splash_render(zip_t *apk, int vp_w, int vp_h, void *win)
 {
     int img_w = 0, img_h = 0, tex_w = 0, tex_h = 0;
     GLuint tex = create_splash_texture(apk, &img_w, &img_h, &tex_w, &tex_h);
@@ -164,8 +165,12 @@ void splash_render(zip_t *apk, int vp_w, int vp_h)
     glVertexAttribPointer(loc_vert, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void *)(0));
     glVertexAttribPointer(loc_uv,   2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void *)(2 * sizeof(float)));
 
-    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-    glFinish();
+    // Draw twice to fill both front/backbuffers, avoids flickering
+    for (int i = 0; i < 2; i++) {
+        glClear(GL_COLOR_BUFFER_BIT);
+        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+        SDL_GL_SwapWindow((SDL_Window *)win);
+    }
 
     glDisableVertexAttribArray(loc_vert);
     glDisableVertexAttribArray(loc_uv);
