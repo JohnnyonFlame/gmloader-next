@@ -205,10 +205,6 @@ int update_inputs(SDL_Window *win)
     // Other events (keyboard, gamepad hotplug, etc)
     SDL_Event ev;
 
-    int any_key_down = 0;
-    int any_key_pressed = 0;
-    int any_key_released = 0;
-
     // The events are buffered for a single frame, but we want their availability to be known at frame one.
     // Fixes Death's Gambit
     for (int i = 0; i < ARRAY_SIZE(yoyo_gamepads); i++) {
@@ -285,19 +281,10 @@ int update_inputs(SDL_Window *win)
             if (ev.key.repeat == 1)
                 break;
 
-            if (ev.key.state == SDL_PRESSED) any_key_pressed = 1;
-            if (ev.key.state == SDL_RELEASED) any_key_released = 1;
             keyboard_set_key(ev.key.keysym.sym, ev.key.state);
             break;
         case SDL_QUIT:
             return 0;
-            break;
-        }
-    }
-
-    for (int i = 2; i < N_KEYS; i++) {
-        if (_IO_KeyDown[i]) {
-            any_key_down = 1;
             break;
         }
     }
