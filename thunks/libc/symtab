@@ -499,7 +499,8 @@ getservent
 getsid
 getsockname
 getsockopt
-gettid
+# Not used by gmloader
+# gettid
 gettimeofday
 getuid
 getutent
@@ -805,7 +806,8 @@ pthread_getattr_np
 pthread_getcpuclockid
 pthread_getschedparam
 pthread_getspecific
-pthread_gettid_np
+# TODO:: maybe reimplement? Not used by gmloader
+# pthread_gettid_np
 pthread_join
 pthread_key_create
 pthread_key_delete
@@ -1091,7 +1093,8 @@ tee
 telldir
 tempnam
 tfind
-tgkill
+# Unused for gmloader
+# tgkill
 time
 timegm
 timegm64
@@ -1471,40 +1474,41 @@ android_getaddrinfofornet
 android_mallopt
 __mempcpy_chk
 __tls_get_addr
-call_once
-cnd_broadcast
-cnd_destroy
-cnd_init
-cnd_signal
-cnd_timedwait
-cnd_wait
-memfd_create
-mlock2
-mtx_destroy
-mtx_init
-mtx_lock
-mtx_timedlock
-mtx_trylock
-mtx_unlock
-pthread_cond_clockwait
-pthread_mutex_clocklock
-pthread_rwlock_clockrdlock
-pthread_rwlock_clockwrlock
-renameat2
-sem_clockwait
-statx
-thrd_create
-thrd_current
-thrd_detach
-thrd_equal
-thrd_exit
-thrd_join
-thrd_sleep
-thrd_yield
-tss_create
-tss_delete
-tss_get
-tss_set
+# Unused for gmloader
+# call_once
+# cnd_broadcast
+# cnd_destroy
+# cnd_init
+# cnd_signal
+# cnd_timedwait
+# cnd_wait
+# memfd_create
+# mlock2
+# mtx_destroy
+# mtx_init
+# mtx_lock
+# mtx_timedlock
+# mtx_trylock
+# mtx_unlock
+# pthread_cond_clockwait
+# pthread_mutex_clocklock
+# pthread_rwlock_clockrdlock
+# pthread_rwlock_clockwrlock
+# renameat2
+# sem_clockwait
+# statx
+# thrd_create
+# thrd_current
+# thrd_detach
+# thrd_equal
+# thrd_exit
+# thrd_join
+# thrd_sleep
+# thrd_yield
+# tss_create
+# tss_delete
+# tss_get
+# tss_set
 __aeabi_unwind_cpp_pr0
 __aeabi_unwind_cpp_pr1
 __aeabi_unwind_cpp_pr2
@@ -1542,7 +1546,8 @@ ffsll
 pidfd_getfd
 pidfd_open
 pidfd_send_signal
-process_madvise
+# Unused for gmloader
+# process_madvise
 __accept4
 __adddf3
 __addsf3
