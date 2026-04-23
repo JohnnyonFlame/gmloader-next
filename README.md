@@ -71,9 +71,14 @@ GIT_BRANCH_master
 GIT_HASH_a4b6187a6757cd8cc5eb4af958d2044e2543677b
 ```
 
+You can toggle VM Tracing on/off with the GMLOADER_TRACE_VM variable, allowing you to see what's being executed by the GameMaker Runner's VM in
+real time.
+
 The android libraries can be debugged with `gdb` using a breakpoint trick - check out [the provided debugging example](debug.gdb).
 
 For this to be possible, you must extract the libraries from the APK into the application's library folder following the same structure as you would on the APK.
+
+If you need to investigate deeper, you'll want to enable `#define WANTS_TRACE` in both [Thunk Gen](thunks/thunk_gen.h) and [JNI Implementation](jni/jni.cpp).
 
 ### Config file
 -----
