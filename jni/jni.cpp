@@ -16,18 +16,13 @@ extern const JNIInvokeInterface jvm_funcs;
 extern const JNINativeInterface jnienv_funcs;
 static JavaVM *jvm_global = NULL;
 
-#define free(...)
-
 template <typename T> ABI_ATTR static T iface_CallNonVirtualMethodV(JNIEnv *env, jobject obj, jclass jclazz, jmethodID meth, va_list va);
 template <typename T> ABI_ATTR static T iface_CallNonVirtualMethodA(JNIEnv *env, jobject obj, jclass jclazz, jmethodID meth, const jvalue *val);
-
 
 ABI_ATTR static jobjectArray iface_NewObjectArray(JNIEnv *env, jsize len, jclass clz, jobject init)
 {
     Class *clazz = (Class*)clz;
     Object *first_elem = (Object*)init;
-    if (first_elem == NULL)
-        return NULL;
 
     if (clazz->instance_size == 0)
         return NULL;
@@ -46,9 +41,13 @@ ABI_ATTR static jobjectArray iface_NewObjectArray(JNIEnv *env, jsize len, jclass
         return NULL;
     }
 
-    for (jsize i = 0; i < len; i++) {
-        uintptr_t offs = (uintptr_t)arr->elements + (arr->element_size * i);
-        memcpy((void*)offs, first_elem, arr->element_size);
+    if (first_elem) {
+        for (jsize i = 0; i < len; i++) {
+            uintptr_t offs = (uintptr_t)arr->elements + (arr->element_size * i);
+            memcpy((void*)offs, first_elem, arr->element_size);
+        }
+    } else {
+        memset(arr->elements, 0, clazz->instance_size * len);
     }
 
     return (jobjectArray)arr;
@@ -56,7 +55,7 @@ ABI_ATTR static jobjectArray iface_NewObjectArray(JNIEnv *env, jsize len, jclass
 
 ABI_ATTR static jint iface_GetVersion(JNIEnv *env)
 {
-    return 10;
+    return JNI_VERSION_1_6;
 }
 
 ABI_ATTR static jclass iface_DefineClass(JNIEnv *env, const char *name, jobject loader,
@@ -186,8 +185,7 @@ ABI_ATTR static jint iface_EnsureLocalCapacity(JNIEnv *env, jint capacity)
 
 ABI_ATTR static jboolean iface_IsSameObject(JNIEnv *env, jobject jref1, jobject jref2)
 {
-    WARN_STUB;
-    return JNI_FALSE;
+    return jref1 == jref2;
 }
 
 ABI_ATTR static jobject iface_AllocObject(JNIEnv *env, jclass jclazz)
@@ -246,69 +244,103 @@ ABI_ATTR static jclass iface_GetObjectClass(JNIEnv *env, jobject jobj)
 
 ABI_ATTR static jboolean iface_IsInstanceOf(JNIEnv *env, jobject jobj, jclass jclazz)
 {
-    WARN_STUB;
-    return JNI_FALSE;
+    if (jobj == NULL) {
+        fatal_error("IsInstanceOf: NULL object dereference, returning FALSE.\n");
+        return JNI_FALSE;
+    }
+
+    if (jclazz == NULL)
+        return JNI_FALSE;
+
+    Object *obj = (Object *)jobj;
+    return (jclass)obj->_getClass() == jclazz;
 }
 
-ABI_ATTR static jmethodID iface_GetMethodID(JNIEnv *env, jclass clazz, const char* name, const char* sig)
+static ManagedMethod *GetMethodIDGeneric(const char *func, JNIEnv *env, Class *clz, const char* name, const char* sig)
 {
-    Class *clz = (Class*)clazz;
-    if (clz) {
-        for (int i = 0; clz->managed_methods[i].name; i++) {
-            if ((strcmp(name, clz->managed_methods[i].name)      == 0) &&
-                (strcmp(sig,  clz->managed_methods[i].signature) == 0)) {
-                return (jmethodID)&clz->managed_methods[i];
-            }
-        }
+    if (clz == NULL) {
+        fatal_error("%s: NULL class dereference, returning NULL (was looking for '%s').\n", func, name);
+        return NULL;
+    }
 
-        warning("Class %s does not have method %s.\n", clz->classname, name);
-    } else {
-        warning("Could not look up method %s, NULL class.\n", name);
+    for (int i = 0; clz->managed_methods[i].name; i++) {
+        if ((strcmp(name, clz->managed_methods[i].name)      == 0) &&
+            (strcmp(sig,  clz->managed_methods[i].signature) == 0)) {
+            return (ManagedMethod*)&clz->managed_methods[i];
+        }
     }
 
     return NULL;
 }
 
-static jfieldID GetFieldIdGeneric(JNIEnv *env, jclass clazz, const char* name, const char* sig)
+static jfieldID GetFieldIdGeneric(const char *func, JNIEnv *env, Class *clz, const char* name, const char* sig)
 {
-    Class *clz = (Class*)clazz;
-    if (clz != NULL) {
-        for (int i = 0; clz->fields[i].name; i++) {
-            if (strcmp(name, clz->fields[i].name) == 0) {
-                return (jfieldID)&clz->fields[i];
-            }
-        }
+    if (clz == NULL) {
+        fatal_error("%s: NULL class dereference, returning NULL.\n", func);
+        return NULL;
+    }
 
-        warning("Class %s does not have field %s.\n", clz->classname, name);
-    } else {
-        warning("Could not look up field %s, NULL class.\n", name);
+    for (int i = 0; clz->fields[i].name; i++) {
+        if (strcmp(name, clz->fields[i].name) == 0) {
+            return (jfieldID)&clz->fields[i];
+        }
     }
    
     return NULL;
 }
 
+ABI_ATTR static jmethodID iface_GetMethodID(JNIEnv *env, jclass clazz, const char* name, const char* sig)
+{
+    Class *clz = (Class*)clazz;
+    ManagedMethod *method = GetMethodIDGeneric("GetMethodID", env, clz, name, sig);
+    if (method && method->is_static_method == false) {
+        return (jmethodID)method;
+    }
+
+    if (clz)
+        warning("Class %s does not have method %s.\n", clz->classname, name);
+
+    return NULL;
+}
+
 ABI_ATTR static jfieldID iface_GetFieldID(JNIEnv *env, jclass clazz, const char* name, const char* sig)
 {
-    FieldId *field = (FieldId*)GetFieldIdGeneric(env, clazz, name, sig);
-    if (field == NULL || field->is_static == 1)
-        return NULL;
+    Class *clz = (Class*)clazz;
+    FieldId *field = (FieldId*)GetFieldIdGeneric("GetFieldID", env, clz, name, sig);
+    if (field && (field->is_static == false))
+        return (jfieldID)field;
     
-    return (jfieldID)field;
+    if (clz)
+        warning("Class %s does not have field %s (%s).\n", clz->classname, name, sig);
+
+    return NULL;
 }
 
 ABI_ATTR static jmethodID iface_GetStaticMethodID(JNIEnv *env, jclass clazz, const char* name, const char* sig)
 {
-    return iface_GetMethodID(env, clazz, name, sig);
-    //WARN_STUB;
+    Class *clz = (Class*)clazz;
+    ManagedMethod *method = GetMethodIDGeneric("GetStaticMethodID", env, clz, name, sig);
+    if (method && method->is_static_method == true) {
+        return (jmethodID)method;
+    }
+
+    if (clz)
+        warning("Class %s does not have static method %s.\n", clz->classname, name);
+
+    return NULL;
 }
 
 ABI_ATTR static jfieldID iface_GetStaticFieldID(JNIEnv *env, jclass clazz, const char* name, const char* sig)
 {
-    FieldId *field = (FieldId*)GetFieldIdGeneric(env, clazz, name, sig);
-    if (field == NULL || field->is_static == 0)
-        return NULL;
+    Class *clz = (Class*)clazz;
+    FieldId *field = (FieldId*)GetFieldIdGeneric("GetStaticFieldID", env, clz, name, sig);
+    if (field && (field->is_static == true))
+        return (jfieldID)field;
+    
+    if (clz)
+        warning("Class %s does not have static field %s.\n", clz->classname, name, sig);
 
-    return (jfieldID)field;
+    return NULL;
 }
 
 ABI_ATTR static jstring iface_NewString(JNIEnv *env, const jchar* unicodeChars, jsize len)
@@ -435,13 +467,20 @@ ABI_ATTR static void* iface_GetPrimitiveArrayCritical(JNIEnv *env, jarray jarr, 
     ArrayObject *array = (ArrayObject*)jarr;
     if (jarr == NULL)
         return NULL;
+
+    // We always return direct references
+    if (isCopy)
+        *isCopy = false;
     
     return array->elements;
 }
 
 ABI_ATTR static void iface_ReleasePrimitiveArrayCritical(JNIEnv *env, jarray jarr, void* carray, jint mode)
 {
-    WARN_STUB;
+    // We always return direct references.
+    if (mode == JNI_COMMIT) {
+        warning("ReleasePrimitiveArrayCritical with unimplemented mode. Fix GetPrimitiveArrayCritical");
+    }
 }
 
 ABI_ATTR static const jchar* iface_GetStringCritical(JNIEnv *env, jstring jstr, jboolean* isCopy)
@@ -495,7 +534,7 @@ ABI_ATTR static jlong iface_GetDirectBufferCapacity(JNIEnv *env, jobject jbuf)
 }
 
 template <typename T>
-ABI_ATTR ABI_ATTR static T iface_CallMethod(JNIEnv *env, jobject obj, jmethodID meth, ...)
+ABI_ATTR static T iface_CallMethod(JNIEnv *env, jobject obj, jmethodID meth, ...)
 {
     ManagedMethod *method = (ManagedMethod*)meth;
     if (!method || !method->addr_variadic) {
@@ -504,6 +543,10 @@ ABI_ATTR ABI_ATTR static T iface_CallMethod(JNIEnv *env, jobject obj, jmethodID 
         else
             return (T)0;
     }
+
+#ifdef WANTS_TRACE
+    printf("TRACE JNI: %s...\n", method->name);
+#endif
 
     va_list va;
     va_start(va, meth);
@@ -529,6 +572,10 @@ ABI_ATTR static T iface_CallMethodV(JNIEnv *env, jobject obj, jmethodID meth, va
             return (T)0;
     }
 
+#ifdef WANTS_TRACE
+    printf("TRACE JNI: %s...\n", method->name);
+#endif
+
     T (*dispatch)(JNIEnv *, jobject, va_list) = (decltype(dispatch))method->addr_variadic;
     if constexpr (std::is_same_v<T, void>) {
         dispatch(env, obj, va);
@@ -542,12 +589,16 @@ template <typename T>
 ABI_ATTR static T iface_CallMethodA(JNIEnv *env, jobject obj, jmethodID meth, const jvalue *val)
 {
     ManagedMethod *method = (ManagedMethod*)meth;
-    if (!method || !method->addr_variadic) {
+    if (!method || !method->addr_array) {
         if constexpr (std::is_same_v<T, void>)
             return;
         else
             return (T)0;
     }
+
+#ifdef WANTS_TRACE
+    printf("TRACE JNI: %s...\n", method->name);
+#endif
 
     T (*dispatch)(JNIEnv *, jobject, const jvalue *) = (decltype(dispatch))method->addr_array;
     if constexpr (std::is_same_v<T, void>) {
@@ -567,6 +618,10 @@ ABI_ATTR static T iface_CallStaticMethod(JNIEnv *env, jclass jclz, jmethodID met
         else
             return (T)0;
     }
+
+#ifdef WANTS_TRACE
+    printf("TRACE JNI: %s...\n", method->name);
+#endif
 
     va_list va;
     va_start(va, meth);
@@ -592,6 +647,10 @@ ABI_ATTR static T iface_CallStaticMethodV(JNIEnv *env, jclass jclz, jmethodID me
             return (T)0;
     }
 
+#ifdef WANTS_TRACE
+    printf("TRACE JNI: %s...\n", method->name);
+#endif
+
     T (*dispatch)(JNIEnv *, jclass, va_list) = (decltype(dispatch))method->addr_variadic;
     if constexpr (std::is_same_v<T, void>) {
         dispatch(env, jclz, va);
@@ -605,12 +664,16 @@ template <typename T>
 ABI_ATTR static T iface_CallStaticMethodA(JNIEnv *env, jclass clz, jmethodID meth, const jvalue *val)
 {
     ManagedMethod *method = (ManagedMethod*)meth;
-    if (!method || !method->addr_variadic) {
+    if (!method || !method->addr_array) {
         if constexpr (std::is_same_v<T, void>)
             return;
         else
             return (T)0;
     }
+
+#ifdef WANTS_TRACE
+    printf("TRACE JNI: %s...\n", method->name);
+#endif
 
     T (*dispatch)(JNIEnv *, jclass, const jvalue *) = (decltype(dispatch))method->addr_array;
     if constexpr (std::is_same_v<T, void>) {
@@ -630,6 +693,10 @@ ABI_ATTR static T iface_CallNonVirtualMethod(JNIEnv *env, jobject obj, jclass jc
         else
             return (T)0;
     }
+
+#ifdef WANTS_TRACE
+    printf("TRACE JNI: %s...\n", method->name);
+#endif
 
     va_list va;
     va_start(va, meth);
@@ -655,6 +722,10 @@ ABI_ATTR static T iface_CallNonVirtualMethodV(JNIEnv *env, jobject obj, jclass j
             return (T)0;
     }
 
+#ifdef WANTS_TRACE
+    printf("TRACE JNI: %s...\n", method->name);
+#endif
+
     T (*dispatch)(JNIEnv *, jobject, jclass, va_list) = (decltype(dispatch))method->addr_variadic;
     if constexpr (std::is_same_v<T, void>) {
         dispatch(env, obj, jclazz, va);
@@ -673,6 +744,10 @@ ABI_ATTR static T iface_CallNonVirtualMethodA(JNIEnv *env, jobject obj, jclass j
         else
             return (T)0;
     }
+
+#ifdef WANTS_TRACE
+    printf("TRACE JNI: %s...\n", method->name);
+#endif
 
     T (*dispatch)(JNIEnv *, jobject, jclass, const jvalue *) = (decltype(dispatch))method->addr_array;
     if constexpr (std::is_same_v<T, void>) {
