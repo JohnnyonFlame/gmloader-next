@@ -56,6 +56,7 @@ bionic_off_t *g_GameFileLength = NULL; //android had 32bit off_t???
 char **g_pWorkingDirectory = NULL;
 char *g_fNoAudio = NULL;
 char *g_fYYC = NULL;
+int *g_fVMTrace = NULL;
 int *g_TextureScale = NULL;
 int g_fdGameFileBuffer = -1;
 int32_t *g_MousePosX = NULL;
@@ -293,6 +294,7 @@ void patch_libyoyo(so_module *mod)
     ENSURE_SYMBOL(mod, Graphics_DisplayWidth, "_Z21Graphics_DisplayWidthv");
     ENSURE_SYMBOL(mod, g_fNoAudio, "g_fNoAudio");
     ENSURE_SYMBOL(mod, g_fYYC, "g_fYYC");
+    FIND_SYMBOL(mod, g_fVMTrace, "g_fVMTrace");
     ENSURE_SYMBOL(mod, g_GameFileLength, "g_GameFileLength");
     ENSURE_SYMBOL(mod, g_GML_DeltaTime, "g_GML_DeltaTime");
     ENSURE_SYMBOL(mod, g_IOFrameCount, "g_IOFrameCount");
@@ -379,6 +381,16 @@ void patch_libyoyo(so_module *mod)
     // Lie about the runner's platform to the game.
     hook_symbol(mod, "_Z23YoYo_GetPlatform_DoWorkv", (uintptr_t)&force_platform_type, 1);
     hook_symbol(mod, "_Z20GET_YoYo_GetPlatformP9CInstanceiP6RValue", (uintptr_t)&force_platform_type_gms2, 1);
+
+    // Enable tracing of the vm
+    const char *trace_vm = getenv("GMLOADER_TRACE_VM");
+    if (trace_vm && *trace_vm == '1') {
+        if (g_fVMTrace) {
+            *g_fVMTrace = 1;
+        } else {
+            fatal_error("Requested VM Tracing, but could not find g_fVMTrace!\n");
+        }
+    }
 
     // Wrap Function_Add
     if (Function_Add && !Original_Function_Add)
