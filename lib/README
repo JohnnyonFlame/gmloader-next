@@ -1,7 +1,7 @@
 # What are those?
 
 Those are native Android libraries meant to be loaded into the guest environment,
-and the come from a [prebuilt AOSP image provided by google](https://ci.android.com/builds/branches/aosp-main/grid).
+and the come from a [prebuilt AOSP image provided by google](https://dl.google.com/android/repository/sys-img/android/sys-img2-1.xml).
 
 # What are these files for then?
 
@@ -15,3 +15,8 @@ via reimplementations.
 
 You still need a suitable GameMaker Android title/runner. You can source those from
 either [freeware Android APKs](https://itch.io) or finding a [suitable runner](https://gamemaker.io/account/runtimes) for hacking.
+
+# What is this armeabi-v7a-r19 variant?
+
+Builds r21 and up are shipping AArch32 binaries - on devices such as Cortex-A7 this will invariably
+result in a SIGILL due to missing VFP5 instructions. For those devices, you'll want the r19 variants.
