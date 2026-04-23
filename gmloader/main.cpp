@@ -75,7 +75,7 @@ int load_module(const char *soname, zip_t *apk, so_module &mod, uintptr_t base_a
 
     if (zip_load_file(apk, filepath, &image_size, &buffer, 0))
         goto load_module_success;
-
+    
     fatal_error("Failed initializing module '%s'.\n", soname);
     return 0;
 
@@ -216,11 +216,19 @@ int main(int argc, char *argv[])
     warning("Loading images...\n");
     // libc.so is implicit (implemented by gmloader)
     // libopenal.so is statically patched via so_static_patches (so we can overload static builds)
+    int has_rt = load_module("libcompiler_rt.so", apk, libcrt, addr_libcrt, vm);
+    if (has_rt) {
+        if (!load_module("libc++_shared.so", apk, stdcpp, addr_stdcpp, vm)) return -1;
+    }
+    else {
+        if (!load_module("libstdc++.so", apk, stdcpp, addr_stdcpp, vm)) return -1;
+    }
     if (!load_module("libm.so", apk, libm, addr_libm, vm)) return -1;
-    if (!load_module("libcompiler_rt.so", apk, libcrt, addr_libcrt, vm)) return -1;
-    if (!load_module("libc++_shared.so", apk, stdcpp, addr_stdcpp, vm)) return -1;
-    int has_al = !load_module("libopenal.so", apk, openal, addr_openal, vm); /* Some APKs have external libopenal.so */
+    int has_al = load_module("libopenal.so", apk, openal, addr_openal, vm); /* Some APKs have external libopenal.so */
     if (!load_module("libyoyo.so", apk, libyoyo, addr_yoyo, vm)) return -1;
+
+    if (has_rt)
+        warning("libcompiler_rt.so not present in runtime.\n");
 
     patch_libyoyo(&libyoyo);
     if(gmloader_config.disable_depth == 1) {
