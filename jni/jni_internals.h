@@ -128,6 +128,7 @@ struct ManagedMethod {
     const char *signature;
     const void *addr_variadic; // For <...> and <va_list> 
     const void *addr_array; // For arrays
+    const bool is_static_method;
 
     template <auto *F>
     static const ManagedMethod Register(Class &clazz, const char *name, const char *signature)
@@ -145,6 +146,7 @@ struct ManagedMethod {
             .signature = signature,
             .addr_variadic = (void*)disp::vargs,
             .addr_array = (void*)disp::aargs,
+            .is_static_method = false,
         };
     }
 
@@ -164,6 +166,7 @@ struct ManagedMethod {
             .signature = signature,
             .addr_variadic = (void*)disp::vargs,
             .addr_array = (void*)disp::aargs,
+            .is_static_method = true,
         };
     }
 
@@ -184,6 +187,7 @@ struct ManagedMethod {
             .signature = signature,
             .addr_variadic = (void*)disp::vargs,
             .addr_array = (void*)disp::aargs,
+            .is_static_method = false,
         };
     }
 };
