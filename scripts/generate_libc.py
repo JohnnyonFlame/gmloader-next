@@ -274,6 +274,12 @@ if __name__ == '__main__':
     handle_diagnostics(translation_unit.diagnostics)
     extract_c_impl_functions(translation_unit.cursor)
 
+    variadic += [
+        "__android_log_print",
+        "__snprintf_chk",
+        "__sprintf_chk"
+    ]
+
     # Prepare our thunk list.
     output = []
     for func in symtab:
@@ -281,8 +287,10 @@ if __name__ == '__main__':
         if func in symtab_excluded:
             continue
 
-        if func in impl:
+        if (func in impl) and (func in variadic):
             output.append("NO_THUNK(\"{}\", (uintptr_t)&{}_impl),".format(func, func))
+        elif func in impl:
+            output.append("THUNK_TRACE(\"{}\", {}_impl),".format(func, func))
         elif func in c_protos:
             output.append("THUNK_SPECIFIC(\"{name}\", C_FUNCS::{name}),".format(name=func))
         elif func in variadic:

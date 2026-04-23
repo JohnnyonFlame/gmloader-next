@@ -62,6 +62,13 @@ extern const char *_ctype_impl;
 extern const short *_tolower_tab_impl;
 extern const short *_toupper_tab_impl;
 
+#ifdef NDEBUG
+void __assert (const char *assertion, const char *file, int line)
+{
+    /* do nothing */
+}
+#endif
+
 DynLibFunction symtable_libc[] = {
     // Symbols picked up by generate_libc.py
     #include "impl_tab.h"

@@ -7,6 +7,8 @@
 #pragma once
 #include <type_traits>
 #include <typeinfo>
+#include <functional>
+#include <string>
 
 #include "platform.h"
 #include "libc/bionic_file.h"
@@ -33,6 +35,57 @@ struct has_FILEp_arg: std::integral_constant<bool, false> {};
 
 template <typename T, typename... Args>
 struct has_FILEp_arg<T, Args...>: std::integral_constant<bool, std::is_same_v<T, FILE*> || has_FILEp_arg<Args...>::value> { };
+
+#ifdef WANTS_TRACE
+#include <mutex>
+
+// C++20: Print individual value by type
+template<typename T>
+inline void print_value(const T& value) {
+    if constexpr (std::is_function_v<std::remove_pointer_t<T>>) {
+        printf("%p", reinterpret_cast<void*>(reinterpret_cast<uintptr_t>(value)));
+    } else if constexpr (std::is_floating_point_v<T>) {
+        printf("%f", static_cast<double>(value));
+    } else if constexpr (std::is_pointer_v<T>) {
+        // Use reinterpret_cast to handle volatile and other qualifiers
+        printf("%p", reinterpret_cast<void*>(reinterpret_cast<uintptr_t>(value)));
+    } else if constexpr (std::is_same_v<T, bool>) {
+        printf("%s", value ? "true" : "false");
+    } else if constexpr (std::is_integral_v<T>) {
+        if constexpr (std::is_signed_v<T>) {
+            printf("%ld", static_cast<long>(value));
+        } else {
+            printf("%lu", static_cast<unsigned long>(value));
+        }
+    } else {
+        printf("%p", reinterpret_cast<void*>(reinterpret_cast<uintptr_t>(&value)));
+    }
+}
+
+
+// C++20: Recursively print all arguments with comma separation
+template<typename T, typename... Args>
+inline void print_values(const T& first, const Args&... rest) {
+    print_value(first);
+    if constexpr (sizeof...(Args) > 0) {
+        printf(", ");
+        print_values(rest...);
+    }
+}
+
+template<typename T>
+inline void print_values(const T& last) {
+    print_value(last);
+}
+
+// C++20: Print all arguments
+template<typename... Args>
+inline void print_all_args([[maybe_unused]] const Args&... args) {
+    if constexpr (sizeof...(Args) > 0) {
+        print_values(args...);
+    }
+}
+#endif
 
 //   This function takes care of generating automatic thunks for the functions
 // we plan on exporting to the guest application, so that the functions we export
@@ -120,15 +173,45 @@ struct ThunkImpl<D, R(*)(Args...) noexcept(EX)>: ThunkImpl<D, R, Args...>
 
 };
 
+#pragma GCC diagnostic ignored "-Wignored-attributes"
+template<typename Callable>
+using return_type_of_t = 
+    typename decltype(std::function{std::declval<Callable>()})::result_type;
+
 // Thunk class specializes into ThunkImpl to dig down into the function prototype
 template<auto F>
 struct Thunk : ThunkImpl<Thunk<F>, std::remove_cvref_t<decltype(F)>>
 {
+#if defined(WANTS_TRACE)
+    static inline const char *trace = NULL;
+#endif
     static constexpr auto orig = F;
     template<typename... Args>
-    static auto bridge_impl(Args... args)
+
+    inline static auto bridge_impl(Args... args)
     {
+#if defined(WANTS_TRACE)
+        if constexpr (std::is_void_v<return_type_of_t<decltype(F)>>) {
+            if (trace) {
+                printf("TRACE %s(", trace);
+                print_all_args(args...);
+                printf(")\n");
+            }
+            F(args...);
+        } else {
+            auto r = F(args...);
+            if (trace) {
+                printf("TRACE %s(", trace);
+                print_all_args(args...);
+                printf(") -> ");
+                print_value(r);
+                printf("\n");
+            }
+            return r;
+        }
+#else
         return F(args...);
+#endif
     }
 };
 
@@ -147,23 +230,30 @@ struct is_function_pointer
 // prototype, deciding if this needs or not thunking and then either returns
 // the original pointer, or the thunked variant.
 template <auto F, class T = Thunk<F>>
-constexpr uintptr_t select_either()
+constexpr uintptr_t select_either(const char *f)
 {
+#if defined(WANTS_TRACE)
+    if ((void*)F != (void*)memcpy && (void*)F != (void*)memset)
+        T::trace = f;
+    return (uintptr_t)T::bridge;
+#else
     if constexpr (T::needs_thunking)
         return (uintptr_t)T::bridge;
     else
         return (uintptr_t)T::orig;
+#endif
 }
 
 // Non-function or prototype-less symbols 
 template <auto F, typename std::enable_if<
             !is_function_pointer<decltype(F)>::value,
             bool>::type = true>
-constexpr uintptr_t select_either()
+constexpr uintptr_t select_either(const char *f)
 {
     return (uintptr_t)F;
 }
 
-#define THUNK_DIRECT(f) {#f,select_either<&f>()}
-#define THUNK_SPECIFIC(str, func) {str,select_either<&func>()}
+#define THUNK_DIRECT(f) {#f,select_either<&f>(#f)}
+#define THUNK_SPECIFIC(str, func) {str,select_either<&func>(str)}
+#define THUNK_TRACE(str, func) {str,select_either<&func>(str)}
 #define NO_THUNK(str, func) {str, func}
