@@ -234,7 +234,7 @@ int so_load(so_module *mod, const char *filename, uintptr_t load_addr, void *so_
     switch (mod->dynamic[i].d_tag) {
       case DT_RELR:
       case DT_ANDROID_RELR:
-        mod->relr = (Elf_Relr*)((uintptr_t)so_data + mod->dynamic[i].d_un.d_val);
+        mod->relr = (Elf_Relr*)((uintptr_t)mod->base + mod->dynamic[i].d_un.d_val);
         break;
       case DT_ANDROID_RELRSZ:
       case DT_RELRSZ:
