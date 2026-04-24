@@ -8,10 +8,93 @@
 
 #include "gles2_funcs.hpp"
 
+#include <filesystem>
+#include <iostream>
+#include <fstream>
+
+namespace fs = std::filesystem;
+
 static int symtable_gles2_index = 0;
 DynLibFunction symtable_gles2[2048] = {};
+static std::string shader_override_dir = "";
+static bool should_dump_shaders = false;
 
 #define PTR_RESOLVE(x) resolve_thunked<&glad_##x>(#x, symtable_gles2_index, symtable_gles2, SDL_GL_GetProcAddress)
+
+// FNV-1a 64-bit hash — fast, no dependencies
+static uint64_t fnv1a_64(const char* data, size_t len) {
+    uint64_t hash = 14695981039346656037ULL;
+    for (size_t i = 0; i < len; i++) {
+        hash ^= (uint8_t)data[i];
+        hash *= 1099511628211ULL;
+    }
+    return hash;
+}
+
+static std::string read_file(const std::string& path) {
+    std::ifstream f(path, std::ios::binary);
+    return std::string(std::istreambuf_iterator<char>(f),
+                       std::istreambuf_iterator<char>());
+}
+
+void glShaderSource_dump(
+    GLuint        shader,
+    GLsizei       count,
+    const GLchar** strings,
+    const GLint*  lengths
+) {
+	// shader dump/override are disabled.
+	if (shader_override_dir.empty()) {
+		glad_glShaderSource(shader, count, strings, lengths);
+		return;
+	}
+
+    std::string source;
+    for (GLsizei i = 0; i < count; i++) {
+        if (lengths && lengths[i] >= 0)
+            source.append(strings[i], lengths[i]);
+        else
+            source.append(strings[i]);
+    }
+
+    uint64_t hash = fnv1a_64(source.data(), source.size());
+
+	std::stringstream filename;
+	filename << std::hex << std::setw(16) << std::setfill('0') << hash << ".glsl";
+
+    fs::path filepath = fs::path(shader_override_dir) / filename.str();
+
+    if (!std::filesystem::exists(filepath)) {
+		if (should_dump_shaders) {
+			std::ofstream out(filepath, std::ios::binary);
+			if (out)
+				out.write(source.data(), source.size());
+		}
+
+	    glad_glShaderSource(shader, count, strings, lengths);
+    } else {
+        std::string overridden = read_file(filepath);
+        if (!overridden.empty()) {
+            const GLchar* ptr = overridden.c_str();
+            GLint         len = (GLint)overridden.size();
+            glad_glShaderSource(shader, 1, &ptr, &len);
+            return;
+        } else {
+			warning("Failed to read the overriden shader '%s', using original.", filepath.c_str());
+			glad_glShaderSource(shader, count, strings, lengths);
+		}
+	}
+}
+
+void set_gles2_shader_override_dir(const char *path, bool should_dump)
+{
+	should_dump_shaders = should_dump;
+	shader_override_dir = path;
+
+	if (should_dump_shaders) {
+		fs::create_directories(shader_override_dir);
+	}
+}
 
 void load_gles2_funcs()
 {
@@ -114,6 +197,7 @@ void load_gles2_funcs()
 	glad_glScissor = (PFNGLSCISSORPROC)PTR_RESOLVE(glScissor);
 	glad_glShaderBinary = (PFNGLSHADERBINARYPROC)PTR_RESOLVE(glShaderBinary);
 	glad_glShaderSource = (PFNGLSHADERSOURCEPROC)PTR_RESOLVE(glShaderSource);
+	symtable_gles2[symtable_gles2_index-1].func = (uintptr_t)glShaderSource_dump; 
 	glad_glStencilFunc = (PFNGLSTENCILFUNCPROC)PTR_RESOLVE(glStencilFunc);
 	glad_glStencilFuncSeparate = (PFNGLSTENCILFUNCSEPARATEPROC)PTR_RESOLVE(glStencilFuncSeparate);
 	glad_glStencilMask = (PFNGLSTENCILMASKPROC)PTR_RESOLVE(glStencilMask);

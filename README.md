@@ -80,6 +80,14 @@ For this to be possible, you must extract the libraries from the APK into the ap
 
 If you need to investigate deeper, you'll want to enable `#define WANTS_TRACE` in both [Thunk Gen](thunks/thunk_gen.h) and [JNI Implementation](jni/jni.cpp).
 
+### Overriding Shaders:
+-----
+Some lower end platforms might have either performance issues or outright fail to compile more complex shaders like Scribble ones - when this happens, users
+can dump the shaders by setting the `shader_dir` folder, and then enabling the `GMLOADER_DUMP_SHADERS` environment variable.
+
+Upon editing of the problematic shaders, users can remove the redundant ones and unset `GMLOADER_DUMP_SHADERS`, this will cause the game to attempt to override
+loaded shaders with equivalent ones from the `shader_dir` path, hopefully resolving whatever problem you were facing.
+
 ### Config file
 -----
 GMLoader-next can load a json formatted configuration file using the `-c` option. For exemple `./gmloadernext.aarch64 -c gmloader.json`
@@ -89,6 +97,7 @@ GMLoader-next can load a json formatted configuration file using the `-c` option
 {
     "save_dir" : "saves",
     "apk_path" : "mygame.apk",
+    "shader_dir": "./shaders/",
     "show_cursor" : false,
     "disable_controller" : false,
     "disable_depth" : false,

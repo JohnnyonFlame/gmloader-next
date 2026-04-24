@@ -8,6 +8,7 @@ gml_config gmloader_config = {};
 void from_json(const json& j, gml_config& c) {
     get_if_exists("save_dir", save_dir);
     get_if_exists("apk_path", apk_path);
+    get_if_exists("shader_dir", shader_dir);
     get_if_exists("show_cursor", show_cursor);
     get_if_exists("disable_controller", disable_controller);
     get_if_exists("disable_depth", disable_depth);
@@ -22,6 +23,7 @@ void from_json(const json& j, gml_config& c) {
 void gml_config::init_defaults(){
     apk_path = "game.apk";
     save_dir = "";
+    shader_dir = "";
     show_cursor = true;
     disable_controller = false;
     disable_depth = false;
@@ -57,6 +59,7 @@ int gml_config::parse_file(const char* path) {
 void gml_config::show_config(){
     printf("config: save_dir = %s\n", save_dir.c_str());
     printf("config: apk_path = %s\n", apk_path.c_str());
+    printf("config: shader_dir = %s\n", shader_dir.c_str());
     printf("config: show_cursor = %d\n", show_cursor);
     printf("config: disable_controller = %d\n", disable_controller);
     printf("config: disable_depth = %d\n", disable_depth);

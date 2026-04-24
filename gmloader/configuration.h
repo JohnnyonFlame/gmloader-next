@@ -10,6 +10,7 @@ namespace fs = std::filesystem;
 struct gml_config {
     std::string save_dir;
     std::string apk_path;
+    std::string shader_dir;
     bool show_cursor;
     bool disable_controller;
     bool disable_depth;

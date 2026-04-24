@@ -233,6 +233,8 @@ int main(int argc, char *argv[])
     // functions using the GLAD generated headers.
     load_egl_funcs();
     load_gles2_funcs();
+    const char *dump_shaders = getenv("GMLOADER_DUMP_SHADERS");
+    set_gles2_shader_override_dir(gmloader_config.shader_dir.c_str(), dump_shaders && *dump_shaders != '\0');
 
     int cont = 1;
     int w, h;

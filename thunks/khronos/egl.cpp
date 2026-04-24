@@ -1,5 +1,6 @@
 #include <SDL2/SDL.h>
 #include "glad_egl.h"
+#include "glad.h"
 
 #include "platform.h"
 #include "so_util.h"
@@ -14,9 +15,20 @@ DynLibFunction symtable_egl[256] = {
     NULL
 };
 
+extern void glShaderSource_dump(
+    GLuint        shader,
+    GLsizei       count,
+    const GLchar** strings,
+    const GLint*  lengths
+);
+
 #define PTR_RESOLVE(x) resolve_thunked<&glad_##x>(#x, symtable_egl_index, symtable_egl, SDL_GL_GetProcAddress)
 ABI_ATTR __eglMustCastToProperFunctionPointerType EGLAPIENTRY eglGetProcAddress_impl (const char *procname)
 {
+
+    if (strcmp(procname, "glShaderSource") == 0)
+        return (__eglMustCastToProperFunctionPointerType)glShaderSource_dump;
+
     for (int i = 0; symtable_gles2[i].symbol; i++) {
         if (strcmp(symtable_gles2[i].symbol, procname) == 0) {
             return (__eglMustCastToProperFunctionPointerType)symtable_gles2[i].func;
