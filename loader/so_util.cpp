@@ -32,11 +32,17 @@
 #include <signal.h>
 #include <errno.h>
 #include <signal.h>
+#include <string>
+#include <filesystem>
 #include <type_traits>
 #include <functional>
+#include <vector>
 
 #include "platform.h"
+#include "io_util.h"
 #include "so_util.h"
+
+namespace fs = std::filesystem;
 
 #if defined(__aarch64__)
 #include "arm64_encodings.h"
@@ -45,7 +51,7 @@
 #endif
 
 #define PATCH_SZ 0x10000 //64 KB-ish arenas
-static so_module *head = NULL;
+std::vector<so_module *> loaded_modules;
 
 // rela_functor functions should return 1 to stop, or 0 to continue executing,
 // and will receive the module and relocation data from the relocation iterator
@@ -97,12 +103,28 @@ void gdb_push(const char *name, uintptr_t load_addr)
 }
 #pragma GCC pop_options
 
-int so_load(so_module *mod, const char *filename, uintptr_t load_addr, void *so_data, size_t sz) {
+static fs::path get_arch_path()
+{
+#if defined(__aarch64__)
+    return "arm64-v8a";
+#elif defined(__arm__)
+    return "armeabi-v7a";
+#else
+    #error Unknown arch, implement me.
+#endif
+}
+
+so_module *so_load(void *so_data, uintptr_t load_addr, size_t sz) {
   // Basic elf header pointer
+  so_module *mod = (so_module *)calloc(1, sizeof(so_module));
+
   mod->ehdr = (Elf_Ehdr *)so_data;
   mod->phdr = (Elf_Phdr *)((uintptr_t)so_data + mod->ehdr->e_phoff);
   mod->shdr = (Elf_Shdr *)((uintptr_t)so_data + mod->ehdr->e_shoff);
   mod->shstr = (char *)((uintptr_t)so_data + mod->shdr[mod->ehdr->e_shstrndx].sh_offset);
+
+  uintptr_t cave_base = 0;
+  uintptr_t cave_end = 0;
 
   // Calculate the necessary memory mapped area for the entire elf
   size_t max_vaddr = 0;
@@ -132,11 +154,7 @@ int so_load(so_module *mod, const char *filename, uintptr_t load_addr, void *so_
     load_addr = (uintptr_t)shd + PATCH_SZ;
 
   if (shd == MAP_FAILED)
-    return -1;
-
-  // This is a hint for GDB to load the elf file symbols - you need to add a
-  // breakpoint and handle this yourself however.
-  gdb_push(filename, load_addr);
+    goto so_load_err;
 
   // Allocate arena for code patches, trampolines, etc
   // Ideally right under .text
@@ -155,7 +173,7 @@ int so_load(so_module *mod, const char *filename, uintptr_t load_addr, void *so_
         mod->text_size = prog_size;
       } else {
         if (mod->n_data >= MAX_DATA_SEG) { 
-          return -1;
+          goto so_load_err;
         }
 
         mod->data_base[mod->n_data] = mod->phdr[i].p_vaddr;
@@ -170,8 +188,8 @@ int so_load(so_module *mod, const char *filename, uintptr_t load_addr, void *so_
 
   // Start by setting the cave to go from ".text" to the end of the mapped
   // virtual memory region
-  uintptr_t cave_base = mod->text_base + mod->text_size;
-  uintptr_t cave_end = load_addr + load_sz;
+  cave_base = mod->text_base + mod->text_size;
+  cave_end = load_addr + load_sz;
 
   // Shrink the cave until it fits between the executable segment and the next
   // loaded segment. 
@@ -248,46 +266,168 @@ int so_load(so_module *mod, const char *filename, uintptr_t load_addr, void *so_
     }
   }
 
-  // Relocations, house keeping, etc.
-  so_relocate_all(mod);
-  so_static_overrides(mod);
-  so_flush_caches(mod, 1);
-  so_initialize(mod);
-  jni_resolve_native(mod);
+  return mod;
 
-  // Register the loaded shared file for future reference, say, during the
-  // resolution of dynamic symbol names.
-  mod->next = head;
-  head = mod;
+so_load_err:
+  if (mod)
+    free(mod);
+  if (shd != MAP_FAILED)
+    munmap(shd, load_total_sz);
 
-  // All done
-  free(so_data);
+  return NULL;
+}
 
-  return 0;
+static uintptr_t get_static_load_addr(std::string filename)
+{
+#ifndef NDEBUG
+    if (filename.starts_with("libm.so"))
+      return 0x10000000;
+    if (filename.starts_with("libcompiler_rt.so"))
+      return 0x14000000;
+    if (filename.starts_with("libstdc++.so") || filename.starts_with("libc++.so") || filename.starts_with("libc++_shared.so"))
+      return 0x18000000;
+    if (filename.starts_with("libopenal.so"))
+      return 0x1C000000;
+    if (filename.starts_with("libyoyo.so"))
+      return 0x40000000;
+#endif
+
+    return 0x0;
+}
+
+static bool has_builtin_lib(std::string filename)
+{
+    if (filename.starts_with("libc.so") ||
+        filename.starts_with("libdl.so") ||
+        filename.starts_with("liblog.so") ||
+        filename.starts_with("libandroid.so") ||
+        filename.starts_with("libz.so"))
+      return true;
+    return false;
+}
+
+
+so_module *so_load_module(const char *filename, struct zip *apk, void *vm) {
+    std::vector<std::string> modules;
+    modules.emplace_back(filename);
+    so_module *ret = NULL;
+
+    const char *libroot = getenv("GMLOADER_LIB_PATH");
+
+    for (int i = 0; i < modules.size(); i++) {
+      std::string current = modules[i];
+
+      // If provided by the loader, then we skip it
+      if (has_builtin_lib(current))
+        continue;
+
+      warning("Loading '%s'...\n", current.c_str());
+
+      char filepath[PATH_MAX];
+      void *buffer = NULL;
+      size_t image_size = 0;
+
+      if (libroot && *libroot) {
+          snprintf(filepath, PATH_MAX, "%s/%s/%s", libroot, get_arch_path().c_str(), current.c_str());
+          if (io_load_file(filepath, &buffer, &image_size))
+              goto load_module_success;
+      }
+
+      snprintf(filepath, PATH_MAX, "lib/%s/%s", get_arch_path().c_str(), current.c_str());
+      if (io_load_file(filepath, &buffer, &image_size))
+          goto load_module_success;
+
+      if (zip_load_file(apk, filepath, &image_size, &buffer, 0))
+        goto load_module_success;
+      
+      fatal_error("Failed to load module '%s'.\n", current.c_str());
+      return NULL;
+
+load_module_success:
+      uintptr_t base_addr = get_static_load_addr(current);
+      so_module *mod = so_load(buffer, base_addr, image_size);
+      free(buffer);
+
+      if (!mod) {
+        fatal_error("Failed to load module '%s'.\n", current.c_str());
+        return NULL;
+      }
+
+      if (!ret)
+        ret = mod;
+      
+      loaded_modules.push_back(mod);
+
+      std::string needed;
+      // Add the dependencies
+      for (int j = 0; j < mod->num_dynamic; j++) {
+        switch (mod->dynamic[j].d_tag) {
+          case DT_NEEDED:
+            needed = std::string(mod->dynstr + mod->dynamic[j].d_un.d_val);
+            if (std::find(modules.begin(), modules.end(), needed) == modules.end()) {
+              modules.push_back(needed);
+            }
+            break;
+          default:
+            break;
+        }
+      }
+    }
+
+    // Relocations, house keeping, etc.
+    for (auto it = loaded_modules.rbegin(); it != loaded_modules.rend(); it++) {
+      so_module *mod = *it;
+      if (mod->was_init)
+        continue;
+
+      printf("Linking %s...\n", mod->soname);
+      so_relocate_all(mod);
+      so_static_overrides(mod);
+      so_flush_caches(mod, 1);
+      so_initialize(mod);
+      jni_resolve_native(mod);
+
+      // And call the JNI_OnLoad method if present
+      auto JNI_OnLoad = (int32_t (*)(void *vm, void *reserved))so_symbol(mod, "JNI_OnLoad");
+      if (JNI_OnLoad != NULL)
+          JNI_OnLoad(vm, NULL);
+
+      mod->was_init = 1;
+    }
+
+    printf("Loaded %s...\n", ret->soname);
+    return ret;
 }
 
 void reloc_err(uintptr_t got0)
 {
   // Find to which module this missing symbol belongs
   int found = 0;
-  so_module *curr = head;
-  while (curr && !found) {
-    if ((got0 >= curr->text_base) && (got0 <= curr->text_base + curr->text_size))
+  so_module *mod = NULL;
+  for (so_module *it: loaded_modules) {
+    if ((got0 >= it->text_base) && (got0 <= it->text_base + it->text_size)) {
       found = 1;
+    }
+    else {
+      for (int i = 0; i < it->n_data; i++) {
+        if ((got0 >= it->data_base[i]) && (got0 <= it->data_base[i] + it->data_size[i])) {
+          found = 1;
+          break;
+        }
+      }
+    }
 
-    for (int i = 0; i < curr->n_data; i++)
-      if ((got0 >= curr->data_base[i]) && (got0 <= curr->data_base[i] + curr->data_size[i]))
-        found = 1;
-    
-    if (!found)
-      curr = curr->next;
+    if (found) {
+      mod = it;
+      break;
+    }
   }
 
-  if (curr) {
+  if (mod) {
     const char *sym_name = NULL;
 
     // Attempt to find symbol name and then display error
-    foreach_rela(curr, [&](so_module *mod, const Elf_Rela *rel) -> int {
+    foreach_rela(mod, [&](so_module *mod, const Elf_Rela *rel) -> int {
       Elf_Sym *sym = &mod->dynsym[ELF_R_SYM(rel->r_info)];
       uintptr_t *ptr = (uintptr_t *)(mod->base + rel->r_offset);
       if (got0 == (uintptr_t)ptr) {
@@ -555,15 +695,12 @@ uintptr_t so_resolve_link(so_module *mod, const char *symbol) {
   }
 
   // oh, look for it on the guest so files I guess
-  so_module *curr = head;
-  while (curr) {
-    if (curr != mod) {
-      uintptr_t link = so_symbol(curr, symbol);
+  for (so_module *it: loaded_modules) {
+    if (it != mod) {
+      uintptr_t link = so_symbol(it, symbol);
       if (link)
         return link;
     }
-    
-    curr = curr->next;
   }
 
   return 0;
@@ -639,13 +776,10 @@ uintptr_t so_symbol(so_module *mod, const char *symbol) {
     if (index >= 0)
       return mod->base + mod->dynsym[index].st_value;
   } else {
-    so_module *cur = head;
-    while (cur) {
-      int index = so_symbol_index(cur, symbol);
+    for (so_module *it: loaded_modules) {
+      int index = so_symbol_index(it, symbol);
       if (index >= 0)
-        return cur->base + cur->dynsym[index].st_value;
-      
-      cur = cur->next;
+        return it->base + it->dynsym[index].st_value;
     }
   }
 

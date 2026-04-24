@@ -55,8 +55,6 @@ extern "C" {
 #define MAX_DATA_SEG 16
 ABI_ATTR typedef int (* init_array_t)();
 typedef struct so_module {
-  struct so_module *next;
-
   // The cave and patch arenas are both usable for code generation (e.g. for code instrumentation).
   // patch arena is allocated prior to the .text segment, while the cave is the padding region used
   // to align segments, and thus left free to use as a code cave (see "p_align" member of the
@@ -98,6 +96,8 @@ typedef struct so_module {
   char *soname;
   char *shstr;
   char *dynstr;
+
+  bool was_init;
 } so_module;
 
 typedef struct {
@@ -128,7 +128,7 @@ void rehook_new(so_module *mod, ReentrantHook *hook, uintptr_t addr, uintptr_t d
 void rehook_hook(ReentrantHook *hook);
 void rehook_unhook(ReentrantHook *hook);
 
-int so_load(so_module *mod, const char *filename, uintptr_t load_addr, void *so_data, size_t sz);
+so_module *so_load_module(const char *filename, struct zip *apk, void *vm);
 void so_relocate(so_module *mod);
 int so_static_overrides(so_module *mod);
 uintptr_t so_resolve_link(so_module *mod, const char *symbol);

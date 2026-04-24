@@ -56,55 +56,7 @@ DynLibFunction *so_dynamic_libraries[32] = {
     NULL
 };
 
-int load_module(const char *soname, zip_t *apk, so_module &mod, uintptr_t base_address, JavaVM *vm)
-{
-    void *buffer;
-    size_t image_size = 0;
-    char filepath[PATH_MAX] = {};
-    const char path[] 
-#if defined(__aarch64__)
-    = "arm64-v8a";
-#elif defined(__arm__)
-    = "armeabi-v7a";
-#else
-    = "";
-    #error Unknown arch, implement me.
-#endif
-
-    const char *libroot = getenv("GMLOADER_LIB_PATH");
-    if (libroot && *libroot) {
-        snprintf(filepath, PATH_MAX, "%s/%s/%s", libroot, path, soname);
-        if (io_load_file(filepath, &buffer, &image_size))
-            goto load_module_success;
-    }
-
-    snprintf(filepath, PATH_MAX, "lib/%s/%s", path, soname);
-    if (io_load_file(filepath, &buffer, &image_size))
-        goto load_module_success;
-
-    if (zip_load_file(apk, filepath, &image_size, &buffer, 0))
-        goto load_module_success;
-    
-    fatal_error("Failed initializing module '%s'.\n", soname);
-    return 0;
-
-load_module_success:
-    // Now link the module
-    int ret = so_load(&mod, filepath, base_address, buffer, image_size) == 0;
-
-    // And call the JNI_OnLoad method if present
-    auto JNI_OnLoad = (jint (*)(JavaVM *vm, void *reserved))so_symbol(&mod, "JNI_OnLoad");
-    if (JNI_OnLoad != NULL)
-        JNI_OnLoad(vm, NULL);
-
-    return ret;
-}
-
-so_module libm = {};
-so_module libcrt = {};
-so_module stdcpp = {};
-so_module openal = {};
-so_module libyoyo = {};
+so_module *libyoyo = NULL;
 
 int RunnerJNILib_MoveTaskToBackCalled = 0;
 
@@ -207,64 +159,27 @@ int main(int argc, char *argv[])
         return -1;
     }
 
-#ifndef NDEBUG
-    uintptr_t addr_libm = 0x10000000;
-    uintptr_t addr_libcrt = 0x14000000;
-    uintptr_t addr_stdcpp = 0x18000000;
-    uintptr_t addr_openal = 0x1C000000;
-    uintptr_t addr_yoyo = 0x40000000;
-#else
-    // Release mode should allocate in any way the system deems suitable
-    uintptr_t addr_libm = 0;
-    uintptr_t addr_libcrt = 0;
-    uintptr_t addr_stdcpp = 0;
-    uintptr_t addr_openal = 0;
-    uintptr_t addr_yoyo = 0;
-#endif
-
     warning("Loading images...\n");
-    // libc.so is implicit (implemented by gmloader)
-    // libopenal.so is statically patched via so_static_patches (so we can overload static builds)
-    int has_rt = load_module("libcompiler_rt.so", apk, libcrt, addr_libcrt, vm);
-    if (has_rt) {
-        if (!load_module("libc++_shared.so", apk, stdcpp, addr_stdcpp, vm)) return -1;
+    libyoyo = so_load_module("libyoyo.so", apk, (void*)vm);
+    if (libyoyo == NULL) {
+        fatal_error("Could not load libyoyo.so!\n");
+        return -1;
     }
-    else {
-        if (!load_module("libstdc++.so", apk, stdcpp, addr_stdcpp, vm)) return -1;
-    }
-    if (!load_module("libm.so", apk, libm, addr_libm, vm)) return -1;
-    int has_al = load_module("libopenal.so", apk, openal, addr_openal, vm); /* Some APKs have external libopenal.so */
-    if (!load_module("libyoyo.so", apk, libyoyo, addr_yoyo, vm)) return -1;
 
-    if (has_rt)
-        warning("libcompiler_rt.so not present in runtime.\n");
-
-    patch_libyoyo(&libyoyo);
+    patch_libyoyo(libyoyo);
     if(gmloader_config.disable_depth == 1) {
         disable_depth();
     }
-    patch_input(&libyoyo);
-    patch_gamepad(&libyoyo);
-    patch_mouse(&libyoyo);
-    patch_fmod(&libyoyo);
-    patch_display_mouse_lock(&libyoyo);
-    patch_gameframe(&libyoyo);
-    patch_psn(&libyoyo);
-    patch_steam(&libyoyo);
-    patch_texture(&libyoyo);
-    patch_lua(&libyoyo);
-
-    int *ms_freq = NULL;
-    if (has_al)
-        FIND_SYMBOL(&openal, ms_freq, "_ZN17ALCdevice_android7ms_freqE");
-    if (ms_freq == NULL)
-        FIND_SYMBOL(&libyoyo, ms_freq, "_ZN17ALCdevice_android7ms_freqE");
-
-    if (ms_freq != NULL)
-    {
-        // Patch the default samplerate to something reasonable
-        *ms_freq = 22050;
-    }
+    patch_input(libyoyo);
+    patch_gamepad(libyoyo);
+    patch_mouse(libyoyo);
+    patch_fmod(libyoyo);
+    patch_display_mouse_lock(libyoyo);
+    patch_gameframe(libyoyo);
+    patch_psn(libyoyo);
+    patch_steam(libyoyo);
+    patch_texture(libyoyo);
+    patch_lua(libyoyo);
 
     String *apk_path_arg = (String *)env->NewStringUTF(apk_path.c_str());
     String *save_dir_arg = (String *)env->NewStringUTF(save_dir.c_str());
