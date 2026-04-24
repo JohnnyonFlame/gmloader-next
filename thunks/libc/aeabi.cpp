@@ -5,6 +5,7 @@
 
 #include "platform.h"
 
+#if defined(__arm__) && !defined(__aarch64__)
 ABI_ATTR int __aeabi_atexit_impl(void *object, void (*destructor) (void *), void *dso_handle) {
     /* crap */
     return 0;
@@ -296,3 +297,4 @@ ABI_ATTR void *__aeabi_read_tp_impl(void)
 #endif
     return tp;
 }
+#endif
