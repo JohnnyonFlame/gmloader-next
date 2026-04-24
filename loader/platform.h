@@ -83,4 +83,9 @@ typedef int bionic_off_t; // 32bit off_t type (BIONIC quirk - see https://cs.and
 typedef long bionic_off_t;
 #endif
 
+typedef struct { int32_t quot; int32_t rem; } __aeabi_idivmod_result_t;
+typedef struct { uint32_t quot; uint32_t rem; } __aeabi_uidivmod_result_t;
+typedef struct { int64_t quot; int64_t rem; } __aeabi_ldivmod_result_t;
+typedef struct { uint64_t quot; uint64_t rem; } __aeabi_uldivmod_result_t;
+
 #endif /* __PLATFORM_H__ */
