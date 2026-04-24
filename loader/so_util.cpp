@@ -367,7 +367,7 @@ void so_relocate_rel(so_module *mod, const Rel *rel) {
     {
       if (sym->st_shndx != SHN_UNDEF) {
         if (type == R_ARM_ABS32)
-          *ptr += mod->text_base + sym->st_value;
+          *ptr += mod->base + sym->st_value;
         else
           *ptr = mod->base + sym->st_value + addend;
       }
