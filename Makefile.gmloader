@@ -25,7 +25,7 @@ LIBS:=\
 	$(shell ${PKG_CONFIG} zlib --libs)
 
 # General compilation flags
-OPTM?=-Os
+OPTM?=-O2 -ggdb
 COMMONFLAGS:=-Wno-strict-aliasing -Werror=return-type -I. -I./thunks/ -I./loader/ -I./gmloader/ -I./build/${ARCH}/thunks/libc -I./jni/ -I./3rdparty/json/include -I./3rdparty/stb -I./3rdparty/lua -I./3rdparty/libzip/lib ${OPTM} -MMD
 CFLAGS:=$(shell ${PKG_CONFIG} sdl2 --cflags) ${COMMONFLAGS}
 CXXFLAGS:=-std=gnu++2a -fuse-cxa-atexit $(shell ${PKG_CONFIG} sdl2 --cflags) ${COMMONFLAGS}
