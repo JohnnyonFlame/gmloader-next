@@ -67,6 +67,31 @@ ABI_ATTR void gamepad_get_description(RValue *ret, void *self, void *other, int 
     YYCreateStringHelper(ret, CONTROLLER_NAME);
 }
 
+#define CONTROLLER_FAILURE "device index out of range"
+#define CONTROLLER_GUID "030000005e0400008e02000010010000"
+ABI_ATTR void gamepad_get_guid(RValue *ret, void *self, void *other, int argc, RValue *args)
+{
+    int id = YYGetInt32(args, 0);
+    if (!IS_CONTROLLER_BOUNDS) {
+        YYCreateStringHelper(ret, CONTROLLER_FAILURE);
+        return;
+    }
+    
+    YYCreateStringHelper(ret, CONTROLLER_GUID);
+}
+
+#define CONTROLLER_MAPPING 	"030000005e0400008e02000014010000,Xbox 360 Controller (XInput STANDARD GAMEPAD),a:b0,b:b1,back:b6,dpdown:h0.4,dpleft:h0.8,dpright:h0.2,dpup:h0.1,guide:b8,leftshoulder:b4,leftstick:b9,lefttrigger:a2,leftx:a0,lefty:a1,rightshoulder:b5,rightstick:b10,righttrigger:a5,rightx:a3,righty:a4,start:b7,x:b2,y:b3"
+ABI_ATTR void gamepad_get_mapping(RValue *ret, void *self, void *other, int argc, RValue *args)
+{
+    int id = YYGetInt32(args, 0);
+    if (!IS_CONTROLLER_BOUNDS) {
+        YYCreateStringHelper(ret, CONTROLLER_FAILURE);
+        return;
+    }
+
+    YYCreateStringHelper(ret, CONTROLLER_MAPPING);
+}
+
 ABI_ATTR void gamepad_get_button_threshold(RValue *ret, void *self, void *other, int argc, RValue *args)
 {
     ret->kind = VALUE_REAL;
@@ -405,6 +430,8 @@ void patch_gamepad(so_module *mod)
     Function_Add("gamepad_get_device_count", gamepad_get_device_count, 0, 1);
     Function_Add("gamepad_is_connected", gamepad_is_connected, 1, 1);
     Function_Add("gamepad_get_description", gamepad_get_description, 1, 1);
+    Function_Add("gamepad_get_guid", gamepad_get_guid, 1, 1);
+    Function_Add("gamepad_get_mapping", gamepad_get_mapping, 1, 1);
     Function_Add("gamepad_get_button_threshold", gamepad_get_button_threshold, 1, 1);
     Function_Add("gamepad_set_button_threshold", gamepad_set_button_threshold, 2, 1);
     Function_Add("gamepad_get_axis_deadzone", gamepad_get_axis_deadzone, 1, 1);
