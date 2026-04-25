@@ -173,7 +173,6 @@ ABI_ATTR static double force_platform_type()
 
 ABI_ATTR void force_platform_type_gms2(void *self, int n, RValue *args)
 {
-    WARN_STUB;
     args[0].kind = VALUE_REAL;
     args[0].rvalue.val = FORCE_PLATFORM;
 }
