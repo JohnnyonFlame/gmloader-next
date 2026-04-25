@@ -128,6 +128,7 @@ void rehook_new(so_module *mod, ReentrantHook *hook, uintptr_t addr, uintptr_t d
 void rehook_hook(ReentrantHook *hook);
 void rehook_unhook(ReentrantHook *hook);
 
+void so_util_set_so_dump_dir(const char *dir);
 so_module *so_load_module(const char *filename, struct zip *apk, void *vm);
 void so_relocate(so_module *mod);
 int so_static_overrides(so_module *mod);
@@ -136,7 +137,6 @@ void so_initialize(so_module *mod);
 uintptr_t so_symbol(so_module *mod, const char *symbol);
 int so_symbol_index(so_module *mod, const char *symbol);
 void so_symbol_fix_ldmia(so_module *mod, const char *symbol);
-uint32_t so_hash(const uint8_t *name);
 
 // Defined on a per-port basis on their specific main.c files
 extern DynLibFunction *so_static_patches[];    // Functions to be replaced in the binary

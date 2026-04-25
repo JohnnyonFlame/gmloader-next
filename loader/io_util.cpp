@@ -4,6 +4,16 @@
 #include "platform.h"
 #include "io_util.h"
 
+// FNV-1a 64-bit hash
+uint64_t fnv1a_64(const char* data, size_t len) {
+    uint64_t hash = 14695981039346656037ULL;
+    for (size_t i = 0; i < len; i++) {
+        hash ^= (uint8_t)data[i];
+        hash *= 1099511628211ULL;
+    }
+    return hash;
+}
+
 int zip_load_file(struct zip *zip, const char *file, size_t *inflated_bytes, void **bytes, size_t max_bytes)
 {
     /* Attempt to locate the file */

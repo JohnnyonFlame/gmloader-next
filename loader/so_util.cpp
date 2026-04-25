@@ -37,6 +37,7 @@
 #include <type_traits>
 #include <functional>
 #include <vector>
+#include <fstream>
 
 #include "platform.h"
 #include "io_util.h"
@@ -114,7 +115,7 @@ static fs::path get_arch_path()
 #endif
 }
 
-so_module *so_load(void *so_data, uintptr_t load_addr, size_t sz) {
+static so_module *so_load(void *so_data, uintptr_t load_addr, size_t sz, const char *dump_dir) {
   // Basic elf header pointer
   so_module *mod = (so_module *)calloc(1, sizeof(so_module));
 
@@ -144,11 +145,15 @@ so_module *so_load(void *so_data, uintptr_t load_addr, size_t sz) {
   size_t load_total_sz = load_sz + PATCH_SZ;
 
   // Now memory map the requested size
+  void *shd = MAP_FAILED;
   int flags = MAP_PRIVATE|MAP_ANONYMOUS|MAP_POPULATE;
-  if (load_addr > 0)
+
+  if (load_addr) {
     flags |= MAP_FIXED;
-    
-  void *shd = mmap((void*)(load_addr - PATCH_SZ), load_total_sz, PROT_READ|PROT_WRITE, flags, 0, 0);
+    shd = mmap((void*)(load_addr - PATCH_SZ), load_total_sz, PROT_READ|PROT_WRITE, flags, 0, 0);
+  } else {
+    shd = mmap(0, load_total_sz, PROT_READ|PROT_WRITE, flags, 0, 0);
+  }
 
   if (load_addr == 0)
     load_addr = (uintptr_t)shd + PATCH_SZ;
@@ -266,6 +271,25 @@ so_module *so_load(void *so_data, uintptr_t load_addr, size_t sz) {
     }
   }
 
+  if (dump_dir && fs::exists(dump_dir) && fs::is_directory(dump_dir)) {
+    uint64_t hash = fnv1a_64((const char *)so_data, sz);
+    std::stringstream filename;
+    filename << std::hex << std::setw(16) << std::setfill('0') << hash << ".so";
+
+    fs::path path = fs::path(dump_dir) / filename.str();
+    if (!fs::exists(path)) {
+      std::ofstream out(path, std::ios::binary);
+      if (out)
+        out.write((const char *)so_data, sz);
+    }
+
+    if (fs::exists(path)) {
+      gdb_push(path.c_str(), (uintptr_t)load_addr);
+    } else {
+      fatal_error("Failed to write so: '%s'.\n", filename.str().c_str());
+    }
+  }
+
   return mod;
 
 so_load_err:
@@ -313,6 +337,7 @@ so_module *so_load_module(const char *filename, struct zip *apk, void *vm) {
     so_module *ret = NULL;
 
     const char *libroot = getenv("GMLOADER_LIB_PATH");
+    const char *dump_dir = getenv("GMLOADER_DUMP_DIR");
 
     for (int i = 0; i < modules.size(); i++) {
       std::string current = modules[i];
@@ -345,7 +370,7 @@ so_module *so_load_module(const char *filename, struct zip *apk, void *vm) {
 
 load_module_success:
       uintptr_t base_addr = get_static_load_addr(current);
-      so_module *mod = so_load(buffer, base_addr, image_size);
+      so_module *mod = so_load(buffer, base_addr, image_size, dump_dir);
       free(buffer);
 
       if (!mod) {
@@ -734,7 +759,7 @@ void so_initialize(so_module *mod) {
   }
 }
 
-uint32_t so_hash(const uint8_t *name) {
+static uint32_t so_hash(const uint8_t *name) {
   uint64_t h = 0, g;
   while (*name) {
     h = (h << 4) + *name++;

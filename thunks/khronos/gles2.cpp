@@ -2,6 +2,7 @@
 #include "glad.h"
 
 #include "platform.h"
+#include "io_util.h"
 #include "so_util.h"
 #include "thunk_gen.h"
 #include "thunk_gen_dyn.h"
@@ -20,16 +21,6 @@ static std::string shader_override_dir = "";
 static bool should_dump_shaders = false;
 
 #define PTR_RESOLVE(x) resolve_thunked<&glad_##x>(#x, symtable_gles2_index, symtable_gles2, SDL_GL_GetProcAddress)
-
-// FNV-1a 64-bit hash — fast, no dependencies
-static uint64_t fnv1a_64(const char* data, size_t len) {
-    uint64_t hash = 14695981039346656037ULL;
-    for (size_t i = 0; i < len; i++) {
-        hash ^= (uint8_t)data[i];
-        hash *= 1099511628211ULL;
-    }
-    return hash;
-}
 
 static std::string read_file(const std::string& path) {
     std::ifstream f(path, std::ios::binary);
