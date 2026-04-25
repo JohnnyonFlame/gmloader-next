@@ -128,7 +128,7 @@ void rehook_new(so_module *mod, ReentrantHook *hook, uintptr_t addr, uintptr_t d
 void rehook_hook(ReentrantHook *hook);
 void rehook_unhook(ReentrantHook *hook);
 
-void so_util_set_so_dump_dir(const char *dir);
+void so_set_options(const char *dump_dir, const char *alt_searchpath);
 so_module *so_load_module(const char *filename, struct zip *apk, void *vm);
 void so_relocate(so_module *mod);
 int so_static_overrides(so_module *mod);

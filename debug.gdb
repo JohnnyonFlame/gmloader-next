@@ -4,6 +4,6 @@ eval "add-symbol-file %s -o %p", name, load_addr
 c
 end
 
-b LoadGLESv2Funcs
+b load_gles2_funcs
 r
 

@@ -51,6 +51,9 @@ namespace fs = std::filesystem;
 #include "arm32_encodings.h"
 #endif
 
+char *so_dump_dir = NULL;
+char *so_alt_searchpath = NULL;
+
 #define PATCH_SZ 0x10000 //64 KB-ish arenas
 std::vector<so_module *> loaded_modules;
 
@@ -115,7 +118,7 @@ static fs::path get_arch_path()
 #endif
 }
 
-static so_module *so_load(void *so_data, uintptr_t load_addr, size_t sz, const char *dump_dir) {
+static so_module *so_load(void *so_data, uintptr_t load_addr, size_t sz) {
   // Basic elf header pointer
   so_module *mod = (so_module *)calloc(1, sizeof(so_module));
 
@@ -271,12 +274,12 @@ static so_module *so_load(void *so_data, uintptr_t load_addr, size_t sz, const c
     }
   }
 
-  if (dump_dir && fs::exists(dump_dir) && fs::is_directory(dump_dir)) {
+  if (so_dump_dir && *so_dump_dir && fs::exists(so_dump_dir) && fs::is_directory(so_dump_dir)) {
     uint64_t hash = fnv1a_64((const char *)so_data, sz);
     std::stringstream filename;
     filename << std::hex << std::setw(16) << std::setfill('0') << hash << ".so";
 
-    fs::path path = fs::path(dump_dir) / filename.str();
+    fs::path path = fs::path(so_dump_dir) / filename.str();
     if (!fs::exists(path)) {
       std::ofstream out(path, std::ios::binary);
       if (out)
@@ -330,14 +333,29 @@ static bool has_builtin_lib(std::string filename)
     return false;
 }
 
+void so_set_options(const char *dump_dir, const char *alt_searchpath)
+{
+  if (so_dump_dir) {
+    free(so_dump_dir);
+    so_dump_dir = NULL;
+  }
+
+  if (so_alt_searchpath) {
+    free(so_alt_searchpath);
+    so_alt_searchpath = NULL;
+  }
+
+  if (dump_dir)
+    so_dump_dir = strdup(dump_dir);
+
+  if (alt_searchpath)
+    so_alt_searchpath = strdup(alt_searchpath);
+}
 
 so_module *so_load_module(const char *filename, struct zip *apk, void *vm) {
     std::vector<std::string> modules;
     modules.emplace_back(filename);
     so_module *ret = NULL;
-
-    const char *libroot = getenv("GMLOADER_LIB_PATH");
-    const char *dump_dir = getenv("GMLOADER_DUMP_DIR");
 
     for (int i = 0; i < modules.size(); i++) {
       std::string current = modules[i];
@@ -352,8 +370,8 @@ so_module *so_load_module(const char *filename, struct zip *apk, void *vm) {
       void *buffer = NULL;
       size_t image_size = 0;
 
-      if (libroot && *libroot) {
-          snprintf(filepath, PATH_MAX, "%s/%s/%s", libroot, get_arch_path().c_str(), current.c_str());
+      if (so_alt_searchpath && *so_alt_searchpath) {
+          snprintf(filepath, PATH_MAX, "%s/%s/%s", so_alt_searchpath, get_arch_path().c_str(), current.c_str());
           if (io_load_file(filepath, &buffer, &image_size))
               goto load_module_success;
       }
@@ -370,7 +388,7 @@ so_module *so_load_module(const char *filename, struct zip *apk, void *vm) {
 
 load_module_success:
       uintptr_t base_addr = get_static_load_addr(current);
-      so_module *mod = so_load(buffer, base_addr, image_size, dump_dir);
+      so_module *mod = so_load(buffer, base_addr, image_size);
       free(buffer);
 
       if (!mod) {

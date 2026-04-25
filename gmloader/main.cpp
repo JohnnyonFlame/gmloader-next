@@ -159,6 +159,10 @@ int main(int argc, char *argv[])
         return -1;
     }
 
+    const char *dumpdir = getenv("GMLOADER_DUMP_DIR");
+    const char *alt_searchpath = getenv("GMLOADER_LIB_PATH");
+    so_set_options(dumpdir, alt_searchpath);
+
     warning("Loading images...\n");
     libyoyo = so_load_module("libyoyo.so", apk, (void*)vm);
     if (libyoyo == NULL) {
