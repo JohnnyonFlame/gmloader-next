@@ -167,10 +167,15 @@ void video_close_internal()
     if (!video_loaded)
         return;
 
+    video_loaded = false;
     Kit_ClosePlayer(video_player);
     Kit_CloseSource(video_src);
     SDL_CloseAudioDevice(video_audiodev);
     free(video_buffer);
+    video_buffer = NULL;
+    video_player = NULL;
+    video_src = NULL;
+    video_audiodev = NULL;
     video_status = -2;
     video_playback_status = 0;
 }
@@ -287,14 +292,13 @@ void video_process()
 
     // If player has stopped, either loop or send end event
     if (Kit_GetPlayerState(video_player) == KIT_STOPPED) {
-        video_seek_to_internal(0);
         if (video_loop_enabled) {
+            video_seek_to_internal(0);
             video_resume_internal();
         } else {
             send_async_social("video_end");
             video_playback_status=0;
         }
-
     } else {
         video_decode();
 
